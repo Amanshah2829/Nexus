@@ -74,7 +74,14 @@ function TenantStatusChecker() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PWAInstallProvider>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <ThemeProvider 
+        attribute="class" 
+        defaultTheme="dark" 
+        enableSystem 
+        storageKey="theme"
+        enableColorScheme={true}
+        disableTransitionOnChange
+      >
         <DynamicBranding />
         {children}
         <TenantStatusChecker />

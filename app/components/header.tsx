@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import useSWR from 'swr'
-import { Bell, Settings, Menu, LogOut, GitCommit, Monitor, Sun, Moon, Download, Search, SlashSquare } from "lucide-react"
-import { useTheme } from 'next-themes'
+import { Bell, Settings, Menu, LogOut, GitCommit, Download, Search, SlashSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ITenant } from "@/app/models/Tenant"
 import Image from "next/image"
 import { cn } from "@/app/lib/utils"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -162,26 +162,8 @@ export function Header() {
             </Link>
           </Button>
 
-          {/* Theme Toggle */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground transition-colors">
-                <Monitor className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-border/50">
-              <DropdownMenuItem onClick={() => setTheme('light')} className="font-medium">
-                <Sun className="mr-2 h-4 w-4" /> Light
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')} className="font-medium">
-                <Moon className="mr-2 h-4 w-4" /> Dark
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setTheme('system')} className="font-medium">
-                <Monitor className="mr-2 h-4 w-4" /> System
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
 
           {/* User Profile Menu */}
           <DropdownMenu>
