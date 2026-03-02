@@ -1,0 +1,4 @@
+serialNumber,assetNo,make,model,macAddress,status,allotmentDate,name,registrationNumber,building,floor,roomNumber,mobileNumber
+ABC-12345,GNLU-IT-D-001,Dell,Optiplex 7010,A1:B2:C3:D4:E5:F1,allotted,2024-07-20,John Doe,23ABC001,Boys Hostel,FF,101,9876543210
+XYZ-98765,GNLU-IT-A-002,Apple,MacBook Pro,A2:B3:C4:D5:E6:F2,allotted,2024-07-21,Jane Smith,23XYZ002,Girls Hostel,SF,205,9876543211
+QWE-45678,GNLU-IT-R-003,TP-Link,RE300,A3:B4:C5:D6:E7:F3,allotted,2024-07-22,Peter Jones,22LMN003,Academic Block A,GF,C-12,9876543212
