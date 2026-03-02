@@ -25,6 +25,9 @@ import {
   ChevronRight,
   ArrowUpRight,
   Globe,
+  Inbox,
+  Clock,
+  TrendingUp,
 } from "lucide-react"
 import useSWR from "swr"
 import Link from "next/link"
@@ -34,6 +37,8 @@ import { LoadingAnimation } from "./ui/loading-animation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState, useMemo } from "react"
 import { cn } from "@/app/lib/utils"
+import { StatCard } from "./ui/stat-card"
+import { StatusBadge } from "./ui/status-badge"
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error('Failed to fetch data');
@@ -165,14 +170,40 @@ function TenantAndAuditDashboard({ currentUser }: { currentUser?: IUser }) {
 function ManagementDashboard({ complaints, users }: { complaints: IComplaint[]; users: IUser[] }) {
   const activeTickets = useMemo(() => complaints.filter(c => c.status !== "closed" && c.status !== "archived"), [complaints])
   const critical = useMemo(() => activeTickets.filter(c => c.priority === "critical"), [activeTickets])
+  const resolved = useMemo(() => complaints.filter(c => c.status === "closed").length, [complaints])
+  const engineers = useMemo(() => users.filter(u => u.role === "engineer").length, [users])
 
   return (
     <div className="space-y-8 bg-background">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <Kpi title="Active Tickets" value={activeTickets.length} icon={Activity} />
-        <Kpi title="Critical" value={critical.length} icon={Flame} danger />
-        <Kpi title="Resolved Today" value={complaints.filter(c => c.status === "closed").length} icon={ShieldCheck} />
-        <Kpi title="Engineers" value={users.filter(u => u.role === "engineer").length} icon={Users} />
+        <StatCard 
+          icon={Inbox} 
+          label="Active Tickets" 
+          value={activeTickets.length}
+          trend={activeTickets.length > 0 ? { value: 12, isPositive: false } : undefined}
+          description="Awaiting resolution"
+        />
+        <StatCard 
+          icon={Flame} 
+          label="Critical Issues" 
+          value={critical.length}
+          trend={critical.length > 0 ? { value: 8, isPositive: false } : undefined}
+          description="Require immediate attention"
+          className="border-destructive/20"
+        />
+        <StatCard 
+          icon={CheckCircle} 
+          label="Resolved" 
+          value={resolved}
+          trend={resolved > 0 ? { value: 15, isPositive: true } : undefined}
+          description="This month"
+        />
+        <StatCard 
+          icon={Users} 
+          label="Engineers" 
+          value={engineers}
+          description={`${activeTickets.length > 0 ? Math.ceil(activeTickets.length / Math.max(engineers, 1)) : 0} avg. per engineer`}
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

@@ -73,16 +73,37 @@ export function UserPortalContent() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <h1 className="text-2xl font-semibold">Welcome, {currentUser.name.split(' ')[0]}</h1>
-            <p className="text-muted-foreground">Here's an overview of your support tickets and resources.</p>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome, {currentUser.name.split(' ')[0]}</h1>
+          <p className="text-base text-muted-foreground">Track and manage your support tickets in one place. Submit new requests and monitor their progress.</p>
         </div>
-        <Button onClick={() => setIsCreateTicketOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Submit New Ticket
+        <Button onClick={() => setIsCreateTicketOpen(true)} className="rounded-lg shadow-lg hover:shadow-xl transition-all font-semibold h-11 px-6 gap-2">
+          <Plus className="h-5 w-5" />
+          Submit Ticket
         </Button>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="glass-card p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{complaints.length}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mt-1">Total Tickets</p>
+        </div>
+        <div className="glass-card p-4 text-center">
+          <p className="text-2xl font-bold text-success">{complaints.filter(c => c.status === 'closed').length}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mt-1">Resolved</p>
+        </div>
+        <div className="glass-card p-4 text-center">
+          <p className="text-2xl font-bold text-warning">{complaints.filter(c => c.status !== 'closed' && c.status !== 'archived').length}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mt-1">Open</p>
+        </div>
+        <div className="glass-card p-4 text-center hidden md:block">
+          <p className="text-2xl font-bold text-info">{Math.round((complaints.filter(c => c.status === 'closed').length / Math.max(complaints.length, 1)) * 100)}%</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mt-1">Resolution</p>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -130,22 +151,38 @@ function TicketCard({ ticket, onSelect, isSelected }: { ticket: IComplaint; onSe
     const stageIndex = lifecycleStages.findIndex(s => s.id === ticket.status);
     const progress = stageIndex !== -1 ? ((stageIndex + 1) / lifecycleStages.length) * 100 : 0;
     
+    const statusColor = ticket.status === 'closed' ? 'bg-success/10 text-success border-success/20' :
+                       ticket.status === 'visited' || ticket.status === 'scheduled' ? 'bg-info/10 text-info border-info/20' :
+                       ticket.status === 'observation' || ticket.status === 'follow-up' ? 'bg-warning/10 text-warning border-warning/20' :
+                       'bg-muted text-muted-foreground border-border';
+    
     return (
-        <Card className={`cursor-pointer hover:bg-accent/50 transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`} onClick={onSelect}>
-            <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                    <div>
-                        <p className="text-sm text-muted-foreground">{ticket.id}</p>
-                        <p className="font-semibold">{ticket.title}</p>
+        <Card className={`cursor-pointer glass-card transition-all duration-200 group ${isSelected ? 'ring-2 ring-primary border-primary/30 shadow-lg' : 'hover:border-primary/20 hover:shadow-md'}`} onClick={onSelect}>
+            <CardContent className="p-5">
+                <div className="flex justify-between items-start gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg w-fit border border-primary/20 font-semibold mb-2">{ticket.id}</p>
+                        <p className="font-bold text-base line-clamp-2 group-hover:text-primary transition-colors text-foreground">{ticket.title}</p>
                     </div>
-                    <Badge variant={ticket.status === 'closed' ? 'default' : 'secondary'} className="capitalize">{ticket.status}</Badge>
+                    <Badge variant="outline" className={`capitalize text-xs font-semibold flex-shrink-0 border rounded-lg px-2.5 py-1 ${statusColor}`}>
+                        {ticket.status}
+                    </Badge>
                 </div>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                   <div className="flex items-center gap-1.5"><Clock className="h-3 w-3"/> Submitted on {new Date(ticket.createdAt).toLocaleDateString()}</div>
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{ticket.description}</p>
+                <div className="space-y-3">
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 flex-shrink-0"/> Submitted {new Date(ticket.createdAt).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground font-medium">Progress</span>
+                            <span className="text-foreground font-semibold">{stageIndex + 1} of {lifecycleStages.length}</span>
+                        </div>
+                        <Progress value={progress} className="h-1.5"/>
+                    </div>
                 </div>
-                 <div className="mt-3">
-                    <Progress value={progress} className="h-2"/>
-                 </div>
             </CardContent>
         </Card>
     )

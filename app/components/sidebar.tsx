@@ -38,26 +38,53 @@ import { Skeleton } from "./ui/skeleton"
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-const ALL_NAV_ITEMS = [
-  { name: "Portal", icon: Home, href: "/portal", roles: ['user'] },
-  { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", roles: ['admin', 'viewer', 'super-admin', 'micro-admin', 'nano-admin'] },
-  { name: "My Tasks", icon: ClipboardList, href: "/engineer", roles: ['engineer'] },
-  { name: "Approvals", icon: UserCheck, href: "/approvals", roles: ['hod'] },
-  { name: "Sales", icon: ShoppingBag, href: "/sales", roles: ['super-admin', 'sales'] },
-  { name: "Inbox", icon: Mail, href: "/inbox", roles: ['admin', 'engineer'] },
-  { name: "Complaints", icon: ClipboardList, href: "/complaints", roles: ['admin', 'viewer'] },
-  { name: "Inventory", icon: Package, href: "/inventory", roles: ['admin', 'engineer'] },
-  { name: "Asset Verification", icon: ShieldCheck, href: "/inventory/verify", roles: ['admin', 'engineer'] },
-  { name: "Asset Issuance", icon: PackagePlus, href: "/issue", roles: ['admin'] },
-  { name: "Schedule", icon: Calendar, href: "/schedule", roles: ['admin'] },
-  { name: "Knowledge Base", icon: BookOpen, href: "/knowledge-base", roles: ['admin', 'engineer', 'viewer'] },
-  { name: "Lifecycle", icon: GitBranch, href: "/lifecycle", roles: ['admin'] },
-  { name: "Analytics", icon: BarChart3, href: "/analytics", roles: ['admin', 'viewer'] },
-  { name: "Reports", icon: FileText, href: "/reports", roles: ['admin', 'viewer'] },
-  { name: "Notifications", icon: Bell, href: "/notifications", roles: ['admin', 'engineer', 'viewer'] },
-  { name: "Settings", icon: Settings, href: "/settings", roles: ['admin', 'super-admin', 'engineer'] },
-  { name: "Support", icon: LifeBuoy, href: "/support", roles: ['admin'] },
+const NAV_CATEGORIES = [
+  {
+    name: "CORE",
+    items: [
+      { name: "Portal", icon: Home, href: "/portal", roles: ['user'] },
+      { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", roles: ['admin', 'viewer', 'super-admin', 'micro-admin', 'nano-admin'] },
+      { name: "My Tasks", icon: ClipboardList, href: "/engineer", roles: ['engineer'] },
+      { name: "Approvals", icon: UserCheck, href: "/approvals", roles: ['hod'] },
+    ]
+  },
+  {
+    name: "MANAGEMENT",
+    items: [
+      { name: "Complaints", icon: ClipboardList, href: "/complaints", roles: ['admin', 'viewer'] },
+      { name: "Inbox", icon: Mail, href: "/inbox", roles: ['admin', 'engineer'] },
+      { name: "Sales", icon: ShoppingBag, href: "/sales", roles: ['super-admin', 'sales'] },
+      { name: "Schedule", icon: Calendar, href: "/schedule", roles: ['admin'] },
+    ]
+  },
+  {
+    name: "OPERATIONS",
+    items: [
+      { name: "Inventory", icon: Package, href: "/inventory", roles: ['admin', 'engineer'] },
+      { name: "Asset Verification", icon: ShieldCheck, href: "/inventory/verify", roles: ['admin', 'engineer'] },
+      { name: "Asset Issuance", icon: PackagePlus, href: "/issue", roles: ['admin'] },
+      { name: "Lifecycle", icon: GitBranch, href: "/lifecycle", roles: ['admin'] },
+    ]
+  },
+  {
+    name: "INSIGHTS",
+    items: [
+      { name: "Analytics", icon: BarChart3, href: "/analytics", roles: ['admin', 'viewer'] },
+      { name: "Reports", icon: FileText, href: "/reports", roles: ['admin', 'viewer'] },
+      { name: "Knowledge Base", icon: BookOpen, href: "/knowledge-base", roles: ['admin', 'engineer', 'viewer'] },
+    ]
+  },
+  {
+    name: "SYSTEM",
+    items: [
+      { name: "Notifications", icon: Bell, href: "/notifications", roles: ['admin', 'engineer', 'viewer'] },
+      { name: "Settings", icon: Settings, href: "/settings", roles: ['admin', 'super-admin', 'engineer'] },
+      { name: "Support", icon: LifeBuoy, href: "/support", roles: ['admin'] },
+    ]
+  }
 ];
+
+const ALL_NAV_ITEMS = NAV_CATEGORIES.flatMap(cat => cat.items);
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
@@ -88,81 +115,126 @@ export function Sidebar() {
 
   const SidebarContent = ({isMobile = false}: {isMobile?: boolean}) => (
     <div className="flex flex-col h-full bg-card">
-      <div className="flex items-center justify-between p-4 border-b border-border h-16 bg-card shrink-0">
+      {/* User Profile Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border/50 h-auto bg-gradient-to-br from-card to-muted/30 shrink-0">
         {!collapsed && currentUser ? (
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-3 overflow-hidden w-full">
             <Avatar className="h-10 w-10 shrink-0 ring-2 ring-primary">
               <AvatarImage src={currentUser.avatar || (currentUser.role === 'super-admin' ? '/super-admin-avatar.png' : `https://avatar.vercel.sh/${(currentUser.name || 'User').replace(/\s+/g, '')}.png`)} />
-              <AvatarFallback className="bg-muted text-foreground font-bold">{currentUser.name?.split(' ').map(n=>n[0]).join('') || 'U'}</AvatarFallback>
+              <AvatarFallback className="bg-primary/20 text-primary font-bold">{currentUser.name?.split(' ').map(n=>n[0]).join('') || 'U'}</AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-bold truncate text-foreground">{currentUser.name || 'User'}</p>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest truncate">{currentUser.role?.replace('-', ' ') || 'Role'}</p>
+              <p className="text-[10px] text-primary/70 font-black uppercase tracking-widest truncate">{currentUser.role?.replace('-', ' ') || 'Role'}</p>
             </div>
+            <Button variant="ghost" size="icon" onClick={toggleCollapse} className={cn("h-8 w-8 p-0 shrink-0 text-foreground", isMobile ? "hidden" : "hidden md:flex")}>
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
           </div>
         ) : !collapsed ? (
-            <div className="flex items-center gap-3 overflow-hidden">
+            <div className="flex items-center gap-3 overflow-hidden w-full">
                 <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
-                <div className="min-w-0 space-y-2">
+                <div className="min-w-0 space-y-2 flex-1">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-3 w-16" />
                 </div>
             </div>
-        ) : null}
-        <Button variant="ghost" size="icon" onClick={toggleCollapse} className={cn("h-8 w-8 p-0 shrink-0 text-foreground", isMobile ? "hidden" : "hidden md:flex")}>
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+        ) : (
+          <Skeleton className="h-10 w-10 rounded-full" />
+        )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-sidebar-scrollbar bg-card">
-        {navigation.map((item) => (
-          <Link key={item.name} href={item.href} passHref>
-            <Button
-              variant={pathname === item.href ? "default" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-3 h-10 transition-all font-bold rounded-full",
-                collapsed && !isMobile && "justify-center px-0",
-                pathname === item.href 
-                  ? "bg-primary text-primary-foreground shadow-md" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              )}
-              onClick={isMobile ? closeMobileSidebar : undefined}
-            >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {(!collapsed || isMobile) && (
-                <>
-                  <span className="flex-1 text-left truncate">{item.name}</span>
-                  {item.badge > 0 && (
-                    <Badge variant={pathname === item.href ? 'destructive' : 'secondary'} className="ml-auto px-1.5 h-5 min-w-[1.25rem] font-black">
-                      {item.badge}
-                    </Badge>
-                  )}
-                </>
-              )}
-            </Button>
-          </Link>
-        ))}
-          
-        <Button
-            variant="outline"
-            className={cn("w-full justify-start gap-3 h-10 bg-muted border-primary text-primary mt-4 font-black rounded-full hover:bg-accent", collapsed && !isMobile && "justify-center px-0")}
-            onClick={openInstallDialog}
-        >
-            <Download className="h-4 w-4 flex-shrink-0" />
-            {(!collapsed || isMobile) && (
-              <span className="flex-1 text-left">Install App</span>
-            )}
-        </Button>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto custom-sidebar-scrollbar bg-card">
+        <div className="p-3 space-y-1">
+          {NAV_CATEGORIES.map((category) => {
+            const categoryItems = category.items.filter(item => 
+              navigation.some(navItem => navItem.href === item.href)
+            );
+            
+            if (categoryItems.length === 0) return null;
+            
+            return (
+              <div key={category.name} className={cn("space-y-1", !collapsed && !isMobile && "mb-4")}>
+                {!collapsed && !isMobile && (
+                  <div className="px-3 py-2 mt-2">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{category.name}</p>
+                  </div>
+                )}
+                {categoryItems.map((item) => {
+                  const navItem = navigation.find(n => n.href === item.href);
+                  if (!navItem) return null;
+                  
+                  return (
+                    <Link key={item.name} href={item.href} passHref>
+                      <Button
+                        variant={pathname === item.href ? "default" : "ghost"}
+                        className={cn(
+                          "w-full justify-start gap-3 h-9 transition-all duration-200 font-semibold rounded-lg relative",
+                          collapsed && !isMobile && "justify-center px-0",
+                          pathname === item.href 
+                            ? "bg-primary text-primary-foreground shadow-md" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        )}
+                        onClick={isMobile ? closeMobileSidebar : undefined}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {(!collapsed || isMobile) && (
+                          <>
+                            <span className="flex-1 text-left truncate text-sm">{item.name}</span>
+                            {navItem.badge > 0 && (
+                              <Badge 
+                                variant={pathname === item.href ? 'destructive' : 'secondary'} 
+                                className="ml-auto px-1.5 h-5 min-w-[1.25rem] font-black text-xs"
+                              >
+                                {navItem.badge}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </nav>
 
-      {currentUser && (['admin', 'super-admin', 'user'].includes(currentUser.role)) && (
-        <div className="p-4 border-t border-border mt-auto bg-card shrink-0">
-            <Button className="w-full gap-2 rounded-full bg-primary text-primary-foreground shadow-lg font-black h-12" size={(collapsed && !isMobile) ? "sm" : "default"} onClick={openCreateComplaint}>
-            <Plus className="h-5 w-5" />
-            {(!collapsed || isMobile) && "CREATE"}
-            </Button>
-        </div>
-      )}
+      {/* Action Buttons */}
+      <div className={cn(
+        "border-t border-border/50 bg-gradient-to-t from-muted/20 to-transparent p-3 mt-auto space-y-2 shrink-0",
+        collapsed && !isMobile && "flex flex-col items-center"
+      )}>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "w-full justify-start gap-2 font-semibold border-primary/30 hover:border-primary/60 text-muted-foreground hover:text-primary",
+            collapsed && !isMobile && "h-9 w-9 justify-center p-0"
+          )}
+          onClick={openInstallDialog}
+        >
+          <Download className="h-4 w-4 flex-shrink-0" />
+          {(!collapsed || isMobile) && (
+            <span className="text-sm">Install App</span>
+          )}
+        </Button>
+
+        {currentUser && (['admin', 'super-admin', 'user'].includes(currentUser.role)) && (
+          <Button 
+            className={cn(
+              "w-full gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg font-semibold hover:shadow-xl transition-all",
+              collapsed && !isMobile && "h-9 w-9 justify-center p-0"
+            )} 
+            onClick={openCreateComplaint}
+          >
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            {(!collapsed || isMobile) && <span className="text-sm">Create</span>}
+          </Button>
+        )}
+      </div>
     </div>
   );
 

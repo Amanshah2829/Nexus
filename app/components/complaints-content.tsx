@@ -166,55 +166,80 @@ export function ComplaintsContent() {
   return (
     <div className="h-full grid grid-cols-1 md:grid-cols-[380px_1fr] bg-background overflow-hidden">
       <aside className={cn("border-r border-border flex flex-col min-h-0 bg-card", selected && "hidden md:flex")}>
-        <header className="p-4 flex items-center justify-between shrink-0 border-b">
-          <h2 className="font-bold text-lg text-foreground">Inbox ({Array.isArray(complaints) ? complaints.length : 0})</h2>
-          <Button size="sm" onClick={openCreateComplaint} className="rounded-full px-4 bg-primary text-primary-foreground font-bold">
-            <Plus className="h-4 w-4 mr-1" /> New
+        <header className="p-4 flex items-center justify-between shrink-0 border-b border-border/50 bg-gradient-to-r from-card to-muted/10">
+          <div>
+            <h2 className="font-bold text-lg text-foreground">Inbox</h2>
+            <p className="text-xs text-muted-foreground mt-1">{Array.isArray(complaints) ? complaints.length : 0} tickets</p>
+          </div>
+          <Button size="sm" onClick={openCreateComplaint} className="rounded-lg px-4 bg-primary text-primary-foreground font-semibold hover:shadow-lg transition-all">
+            <Plus className="h-4 w-4 mr-1.5" /> New
           </Button>
         </header>
 
-        <div className="px-4 py-3 border-b shrink-0 bg-muted">
+        <div className="px-4 py-3 border-b border-border/50 shrink-0 bg-muted/20">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search tickets…"
+              placeholder="Search by title, ID…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-background border-border"
+              className="pl-9 bg-background border-border/50 placeholder-muted-foreground/60 text-sm"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 custom-sidebar-scrollbar bg-card">
           <AnimatePresence>
-            {Array.isArray(complaints) && complaints.map(c => (
-              <motion.div
-                key={c._id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSelected(c)}
-                className={cn(
-                  "px-4 py-4 border-b border-border transition-all",
-                  selected?._id === c._id
-                    ? "bg-muted border-l-4 border-l-primary"
-                    : "hover:bg-muted bg-card"
-                )}
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <p className={cn("text-sm font-bold line-clamp-2", selected?._id === c._id ? "text-primary" : "text-foreground")}>{c.title}</p>
-                  <Badge variant="outline" className="capitalize text-[10px] h-5 rounded-md px-1.5 border-primary text-primary bg-background">{c.priority}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">{c.description}</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-muted-foreground tracking-tight font-bold">{c.id}</span>
-                  <Avatar className="h-5 w-5 border border-border">
-                    <AvatarImage src={(c.assignedTo as any)?.avatar || `https://avatar.vercel.sh/${(c.assignedTo as any)?.name?.replace(' ', '')}.png`} />
-                    <AvatarFallback className="text-[8px] bg-muted text-foreground">{(c.assignedTo as any)?.name?.charAt(0) || 'U'}</AvatarFallback>
-                  </Avatar>
-                </div>
-              </motion.div>
-            ))}
+            {Array.isArray(complaints) && complaints.map(c => {
+              const priorityColors = {
+                critical: "bg-destructive/10 text-destructive border-destructive/20",
+                high: "bg-warning/10 text-warning border-warning/20",
+                medium: "bg-info/10 text-info border-info/20",
+                low: "bg-muted text-muted-foreground border-border/50"
+              }
+              const priorityClass = priorityColors[c.priority as keyof typeof priorityColors] || priorityColors.low
+              
+              return (
+                <motion.div
+                  key={c._id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setSelected(c)}
+                  className={cn(
+                    "px-4 py-4 border-b border-border/50 transition-all duration-200 cursor-pointer group",
+                    selected?._id === c._id
+                      ? "bg-muted/60 border-l-4 border-l-primary"
+                      : "hover:bg-muted/30 bg-card"
+                  )}
+                >
+                  <div className="flex justify-between items-start gap-3 mb-2">
+                    <p className={cn("text-sm font-semibold line-clamp-2 flex-1", selected?._id === c._id ? "text-primary" : "text-foreground group-hover:text-primary transition-colors")}>{c.title}</p>
+                    <Badge variant="outline" className={cn("capitalize text-[9px] h-5 rounded-full px-2 border flex-shrink-0 font-semibold", priorityClass)}>
+                      {c.priority}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-1 mb-3">{c.description}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-mono text-muted-foreground/70 font-semibold">{c.id}</span>
+                    <div className="flex items-center gap-2">
+                      {c.assignedTo && (
+                        <Avatar className="h-5 w-5 border border-border/50 ring-1 ring-primary/20">
+                          <AvatarImage src={(c.assignedTo as any)?.avatar || `https://avatar.vercel.sh/${(c.assignedTo as any)?.name?.replace(' ', '')}.png`} />
+                          <AvatarFallback className="text-[7px] bg-muted text-foreground font-bold">{(c.assignedTo as any)?.name?.charAt(0) || 'U'}</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div className={cn("w-2 h-2 rounded-full", {
+                        "bg-success": c.status === "closed",
+                        "bg-warning": c.status === "observation" || c.status === "follow-up",
+                        "bg-info": c.status === "scheduled" || c.status === "visited",
+                        "bg-muted": c.status === "created" || c.status === "pending-info"
+                      })} />
+                    </div>
+                  </div>
+                </motion.div>
+              )
+            })}
           </AnimatePresence>
 
           {isLoading && (
@@ -312,20 +337,28 @@ function TicketContext({ ticket, onBack, onComplaintUpdate, onEditClick, onSched
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <header className="p-4 border-b border-border bg-card flex items-center gap-2 shrink-0">
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={onBack}>
+      <header className="p-4 md:p-6 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/5 flex items-center gap-3 shrink-0">
+        <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 text-muted-foreground hover:text-foreground" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h1 className="font-bold text-lg truncate tracking-tight text-foreground">{ticket.title}</h1>
-          <p className="text-xs text-muted-foreground font-mono flex items-center gap-2 mt-0.5">
-            <span className="bg-muted px-1.5 py-0.5 rounded text-primary font-bold">{ticket.id}</span>
-            <span className="opacity-50">•</span>
-            {ticket.ticketNumber}
-          </p>
+          <h1 className="font-bold text-xl truncate tracking-tight text-foreground">{ticket.title}</h1>
+          <div className="flex items-center gap-3 mt-1.5">
+            <span className="text-[10px] font-mono bg-primary/10 px-2.5 py-1 rounded-lg text-primary font-bold border border-primary/20">{ticket.id}</span>
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{ticket.ticketNumber}</span>
+            <span className="text-[10px] text-muted-foreground">•</span>
+            <span className="text-[10px] text-muted-foreground">{new Date(ticket.createdAt).toLocaleDateString()}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-            <Badge className="capitalize rounded-full px-3 py-1 bg-primary text-primary-foreground border-none font-bold">
+            <Badge className={cn(
+              "capitalize rounded-full px-3 py-1.5 border font-semibold text-xs",
+              ticket.status === "closed" ? "bg-success/10 text-success border-success/20" : 
+              ticket.status === "created" ? "bg-info/10 text-info border-info/20" :
+              ticket.status === "scheduled" ? "bg-warning/10 text-warning border-warning/20" :
+              ticket.status === "visited" ? "bg-info/10 text-info border-info/20" :
+              "bg-primary/10 text-primary border-primary/20"
+            )}>
                 {ticket.status}
             </Badge>
              <DropdownMenu>

@@ -137,12 +137,13 @@ export function AnalyticsContent() {
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-border bg-card sticky top-0 z-10">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-primary">Analytics Dashboard</h1>
-            <p className="text-muted-foreground text-sm">An overview of your support operations and performance.</p>
-          </div>
+      <div className="p-4 sm:p-6 md:p-8 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/5 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Analytics Dashboard</h1>
+              <p className="text-muted-foreground text-base">Monitor key metrics, track trends, and measure team performance in real-time.</p>
+            </div>
           <div className="flex items-center gap-2">
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
               <SelectTrigger className="w-36 text-xs h-9 bg-background">
