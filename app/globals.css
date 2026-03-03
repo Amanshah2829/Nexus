@@ -174,49 +174,49 @@
 @layer components {
   /* Card Variants */
   .glass-card {
-    @apply bg-card border border-border shadow-sm rounded-lg;
+    @apply bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-lg;
   }
   
   .glass-card-hover {
-    @apply glass-card transition-all duration-200 hover:shadow-md hover:border-primary/30;
+    @apply bg-[var(--card)] border border-[var(--border)] shadow-sm rounded-lg transition-all duration-200 hover:shadow-md hover:border-[var(--primary)]/30;
   }
   
   .elevated-card {
-    @apply bg-card border border-border shadow-md rounded-lg;
+    @apply bg-[var(--card)] border border-[var(--border)] shadow-md rounded-lg;
   }
   
   /* Button Base States */
   .btn-base {
-    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2;
   }
   
   .btn-primary {
-    @apply btn-base bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 active:bg-[var(--primary)]/80 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-secondary {
-    @apply btn-base bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--secondary)]/80 active:bg-[var(--secondary)]/70 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-ghost {
-    @apply btn-base text-foreground hover:bg-muted active:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 text-[var(--foreground)] hover:bg-[var(--muted)] active:bg-[var(--muted)]/70 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-destructive {
-    @apply btn-base bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 bg-[var(--destructive)] text-[var(--destructive-foreground)] hover:bg-[var(--destructive)]/90 active:bg-[var(--destructive)]/80 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   /* Input Variants */
   .input-base {
-    @apply w-full bg-input border border-border px-3 py-2 text-base rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply w-full bg-[var(--input)] border border-[var(--border)] px-3 py-2 text-base rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .input-error {
-    @apply input-base border-destructive focus:ring-destructive;
+    @apply w-full bg-[var(--input)] border border-[var(--destructive)] px-3 py-2 text-base rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--destructive)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .input-success {
-    @apply input-base border-success focus:ring-success;
+    @apply w-full bg-[var(--input)] border border-[var(--success)] px-3 py-2 text-base rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--success)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   /* Typography */
@@ -229,19 +229,19 @@
   }
   
   .h1 {
-    @apply text-4xl font-bold tracking-tight text-balance;
+    @apply text-4xl font-bold tracking-tight;
   }
   
   .h2 {
-    @apply text-3xl font-bold tracking-tight text-balance;
+    @apply text-3xl font-bold tracking-tight;
   }
   
   .h3 {
-    @apply text-2xl font-semibold tracking-tight text-balance;
+    @apply text-2xl font-semibold tracking-tight;
   }
   
   .h4 {
-    @apply text-xl font-semibold tracking-tight text-balance;
+    @apply text-xl font-semibold tracking-tight;
   }
   
   .h5 {
@@ -265,7 +265,7 @@
   }
   
   .caption {
-    @apply text-xs text-muted-foreground;
+    @apply text-xs text-[var(--muted-foreground)];
   }
   
   /* Scrollbar */
@@ -279,12 +279,13 @@
   }
   
   .custom-sidebar-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full;
+    background: var(--muted);
+    border-radius: 9999px;
     transition: background 0.3s ease;
   }
   
   .custom-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-primary;
+    background: var(--primary);
   }
   
   /* Badge Variants */
@@ -293,28 +294,28 @@
   }
   
   .badge-primary {
-    @apply badge-base bg-primary/10 text-primary border border-primary/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20;
   }
   
   .badge-secondary {
-    @apply badge-base bg-secondary/50 text-secondary-foreground;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--secondary)]/50 text-[var(--secondary-foreground)];
   }
   
   .badge-success {
-    @apply badge-base bg-success/10 text-success border border-success/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20;
   }
   
   .badge-warning {
-    @apply badge-base bg-warning/10 text-warning border border-warning/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/20;
   }
   
   .badge-destructive {
-    @apply badge-base bg-destructive/10 text-destructive border border-destructive/20;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--destructive)]/10 text-[var(--destructive)] border border-[var(--destructive)]/20;
   }
   
   /* Loading & Empty States */
   .skeleton {
-    @apply bg-muted animate-pulse rounded-md;
+    @apply bg-[var(--muted)] animate-pulse rounded-md;
   }
   
   /* Utility Classes */
@@ -323,6 +324,6 @@
   }
   
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2;
   }
 }
