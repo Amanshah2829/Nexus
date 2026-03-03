@@ -1,5 +1,5 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/app/lib/db';
 import User from '@/app/models/User';
 import Setting from '@/app/models/Setting';
@@ -7,25 +7,93 @@ import { cookies } from 'next/headers';
 import { SessionData } from '@/app/lib/session';
 import Tenant from '@/app/models/Tenant';
 import bcrypt from 'bcryptjs';
+import { loginSchema } from '@/app/lib/validation';
+import { logFailure, logSuccess, getIpAddress } from '@/app/lib/audit';
+import { sanitizeEmail } from '@/app/lib/sanitize';
+import { checkRateLimit } from '@/app/lib/api-helpers';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const { email, password } = await request.json();
 
-    if (!email || !password) {
+    const ipAddress = getIpAddress(request);
+
+    // Rate limit by IP address (5 attempts per minute)
+    if (!checkRateLimit(`auth:${ipAddress}`, 5, 60000)) {
+      return NextResponse.json(
+        { message: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
+
+    // Validate request body
+    const body = await request.json();
+    
+    if (!body.email || !body.password) {
       return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
     }
-    
-    const user = await User.findOne({ email }).select('+password').populate('tenant');
 
-    if (!user) {
-      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
+    // Sanitize and validate email
+    const sanitizedEmail = sanitizeEmail(body.email);
+    if (!sanitizedEmail) {
+      return NextResponse.json(
+        { message: 'Invalid email address' },
+        { status: 400 }
+      );
     }
     
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    const user = await User.findOne({ email: sanitizedEmail }).select('+password').populate('tenant');
+
+    if (!user) {
+      // Log failed authentication attempt
+      await logFailure(
+        'unknown',
+        'LOGIN',
+        'USER',
+        sanitizedEmail,
+        'User not found',
+        request
+      );
+
+      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
+    }
+
+    // Check if account is locked
+    if (user.isAccountLocked?.()) {
+      await logFailure(
+        user._id.toString(),
+        'LOGIN',
+        'USER',
+        user._id.toString(),
+        'Account locked due to multiple failed login attempts',
+        request
+      );
+
+      return NextResponse.json(
+        { 
+          message: 'Account is locked. Please try again later or contact support.' 
+        },
+        { status: 403 }
+      );
+    }
+    
+    const isPasswordMatch = await bcrypt.compare(body.password, user.password);
 
     if (!isPasswordMatch) {
+      // Record failed login attempt
+      if (user.recordFailedLogin) {
+        await user.recordFailedLogin();
+      }
+
+      await logFailure(
+        user._id.toString(),
+        'LOGIN',
+        'USER',
+        user._id.toString(),
+        'Invalid password',
+        request
+      );
+
       return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -48,6 +116,15 @@ export async function POST(request: Request) {
         }
 
         if (tenant.status !== 'active') {
+            await logFailure(
+              user._id.toString(),
+              'LOGIN',
+              'USER',
+              user._id.toString(),
+              `Tenant status: ${tenant.status}`,
+              request
+            );
+
             return NextResponse.json({ 
                 message: 'Your organization\'s account is inactive or suspended. Please contact your admin.',
                 details: `Tenant status: ${tenant.status}`
@@ -72,15 +149,39 @@ export async function POST(request: Request) {
         }
     }
 
+    // Reset login attempts on successful login
+    if (user.resetLoginAttempts) {
+      await user.resetLoginAttempts();
+    }
+
+    // Log successful login
+    await logSuccess(
+      user._id.toString(),
+      'LOGIN',
+      'USER',
+      user._id.toString(),
+      undefined,
+      request
+    );
 
     cookies().set('session', JSON.stringify(sessionToken), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
         maxAge: sessionDuration, 
         path: '/',
     });
 
-    return NextResponse.json({ message: 'Login successful', role: user.role });
+    return NextResponse.json({ 
+      message: 'Login successful', 
+      role: user.role,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      }
+    });
 
   } catch (error: any) {
     console.error('Login failed:', error);

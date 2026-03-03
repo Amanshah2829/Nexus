@@ -1,20 +1,38 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/app/lib/session';
+import { logSuccess } from '@/app/lib/audit';
 import { cookies } from 'next/headers';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // Clear the session cookie
-    cookies().set('session', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: -1, // Expire the cookie immediately
-        path: '/',
-    });
+    const session = await getSession(request);
 
-    return NextResponse.json({ message: 'Logout successful' });
+    // Log logout event before clearing session
+    if (session) {
+      await logSuccess(
+        session.userId,
+        'LOGOUT',
+        'USER',
+        session.userId,
+        undefined,
+        request
+      );
+    }
+
+    // Clear the session cookie
+    cookies().delete('session');
+
+    return NextResponse.json({ 
+      message: 'Logout successful',
+      timestamp: new Date().toISOString(),
+    });
   } catch (error: any) {
     console.error('Logout failed:', error);
+    
+    // Still clear the cookie even if logging fails
+    cookies().delete('session');
+    
     return NextResponse.json(
       { message: 'An internal server error occurred.' },
       { status: 500 }

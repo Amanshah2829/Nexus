@@ -28,6 +28,19 @@ export interface IUser extends Document {
     smtpUser?: string;
     smtpPassword?: string;
   }
+  // Security features
+  failedLoginAttempts: number;
+  lastFailedLogin?: Date;
+  isLocked: boolean;
+  lockedUntil?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string;
+  lastLogin?: Date;
+  recordFailedLogin(): Promise<void>;
+  resetLoginAttempts(): Promise<void>;
+  isAccountLocked(): boolean;
 }
 
 const EmailConfigSchema: Schema = new Schema({
@@ -55,6 +68,16 @@ const UserSchema: Schema<IUser> = new Schema({
   otpExpires: { type: Date, select: false },
   isVerified: { type: Boolean, default: false },
   emailConfig: { type: EmailConfigSchema, select: false },
+  // Security fields
+  failedLoginAttempts: { type: Number, default: 0 },
+  lastFailedLogin: { type: Date, default: null },
+  isLocked: { type: Boolean, default: false, index: true },
+  lockedUntil: { type: Date, default: null },
+  passwordResetToken: { type: String, select: false },
+  passwordResetExpires: { type: Date },
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorSecret: { type: String, select: false },
+  lastLogin: { type: Date, default: null },
 }, { timestamps: true });
 
 // Hash password before saving if it has been modified
@@ -81,6 +104,49 @@ UserSchema.pre<IUser>('save', function (next) {
 UserSchema.methods.comparePassword = function (candidatePassword: string): Promise<boolean> {
     return bcrypt.compare(candidatePassword, this.password);
 };
+
+// Record a failed login attempt and lock account if too many attempts
+UserSchema.methods.recordFailedLogin = async function (): Promise<void> {
+    this.failedLoginAttempts += 1;
+    this.lastFailedLogin = new Date();
+
+    // Lock account after 5 failed attempts for 30 minutes
+    if (this.failedLoginAttempts >= 5) {
+        this.isLocked = true;
+        this.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+    }
+
+    await this.save();
+};
+
+// Reset login attempts after successful login
+UserSchema.methods.resetLoginAttempts = async function (): Promise<void> {
+    this.failedLoginAttempts = 0;
+    this.lastFailedLogin = undefined;
+    this.isLocked = false;
+    this.lockedUntil = undefined;
+    this.lastLogin = new Date();
+    await this.save();
+};
+
+// Check if account is locked
+UserSchema.methods.isAccountLocked = function (): boolean {
+    if (!this.isLocked) return false;
+    
+    // Check if lock has expired
+    if (this.lockedUntil && new Date() > this.lockedUntil) {
+        this.isLocked = false;
+        this.lockedUntil = undefined;
+        this.failedLoginAttempts = 0;
+        return false;
+    }
+    
+    return true;
+};
+
+// Add indexes for security queries
+UserSchema.index({ isLocked: 1, lockedUntil: 1 });
+UserSchema.index({ email: 1, isVerified: 1 });
 
 const User: Model<IUser> = models.User || mongoose.model<IUser>('User', UserSchema);
 
