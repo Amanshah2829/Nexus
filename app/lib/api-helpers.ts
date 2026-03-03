@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema } from 'zod';
-import { AppError, ValidationError, NotFoundError, UnauthorizedError, ForbiddenError } from './errors';
+import { AppError, ValidationError, NotFoundError, AuthenticationError, AuthorizationError } from './errors';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -74,7 +74,7 @@ export async function getSessionUser(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   
   if (!authHeader?.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Missing or invalid authorization header');
+    throw new AuthenticationError('Missing or invalid authorization header');
   }
 
   const token = authHeader.slice(7);
@@ -88,7 +88,7 @@ export async function getSessionUser(req: NextRequest) {
  */
 export function requireRole(userRole: string, requiredRole: string) {
   if (userRole !== requiredRole) {
-    throw new ForbiddenError('Insufficient permissions for this operation');
+    throw new AuthorizationError('Insufficient permissions for this operation');
   }
 }
 
