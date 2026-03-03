@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { Toaster } from '@/components/ui/toaster'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Loader2, ShieldCheck, Mail, MailCheck } from 'lucide-react'
+import { Loader2, ShieldCheck, Mail, MailCheck, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 
@@ -203,20 +203,31 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="flex items-center justify-center min-h-screen bg-black p-4">
-        <Card className="w-full max-w-sm login-card-glow relative z-10">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
-              <div className="flex items-center justify-center gap-2">
-                <ShieldCheck className="h-8 w-8 text-primary" />
-                <span>Vynsec Nexus</span>
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center px-4 py-12">
+        {/* Background Decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -mr-48 -mt-48" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl -ml-48 -mb-48" />
+        </div>
+
+        <div className="w-full max-w-md z-10">
+          {/* Main Card */}
+          <Card className="border border-border shadow-2xl rounded-2xl overflow-hidden">
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-r from-primary to-primary/90 px-8 py-10">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <ShieldCheck className="h-8 w-8 text-primary-foreground" />
+                <CardTitle className="text-3xl font-bold text-primary-foreground">Vynsec Nexus</CardTitle>
               </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {showSignupDisabledMessage && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>
+              <p className="text-center text-primary-foreground/80 text-sm font-medium">Enterprise Support Platform</p>
+            </div>
+
+            {/* Content */}
+            <CardContent className="px-8 py-8">
+              {showSignupDisabledMessage && (
+                <Alert variant="destructive" className="mb-6 border-destructive/30 bg-destructive/10">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-destructive font-medium">
                     Public sign-up is currently disabled.
                   </AlertDescription>
                 </Alert>

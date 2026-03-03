@@ -87,82 +87,107 @@ export function Sidebar() {
   const toggleCollapse = useCallback(() => setCollapsed(prev => !prev), []);
 
   const SidebarContent = ({isMobile = false}: {isMobile?: boolean}) => (
-    <div className="flex flex-col h-full bg-card">
-      <div className="flex items-center justify-between p-4 border-b border-border h-16 bg-card shrink-0">
+    <div className="flex flex-col h-full bg-card/50">
+      {/* User Profile Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border/50 h-16 bg-gradient-to-b from-card to-card/50 shrink-0">
         {!collapsed && currentUser ? (
-          <div className="flex items-center gap-3 overflow-hidden">
-            <Avatar className="h-10 w-10 shrink-0 ring-2 ring-primary">
+          <div className="flex items-center gap-3 overflow-hidden flex-1">
+            <Avatar className="h-10 w-10 shrink-0 ring-2 ring-primary/50">
               <AvatarImage src={currentUser.avatar || (currentUser.role === 'super-admin' ? '/super-admin-avatar.png' : `https://avatar.vercel.sh/${(currentUser.name || 'User').replace(/\s+/g, '')}.png`)} />
-              <AvatarFallback className="bg-muted text-foreground font-bold">{currentUser.name?.split(' ').map(n=>n[0]).join('') || 'U'}</AvatarFallback>
+              <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                {currentUser.name?.split(' ').map(n=>n[0]).join('') || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
-              <p className="text-sm font-bold truncate text-foreground">{currentUser.name || 'User'}</p>
-              <p className="text-[10px] text-primary font-black uppercase tracking-widest truncate">{currentUser.role?.replace('-', ' ') || 'Role'}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold truncate text-foreground">{currentUser.name || 'User'}</p>
+              <p className="text-xs text-muted-foreground font-medium truncate">
+                {currentUser.role?.replace('-', ' ') || 'Role'}
+              </p>
             </div>
           </div>
         ) : !collapsed ? (
-            <div className="flex items-center gap-3 overflow-hidden">
+            <div className="flex items-center gap-3 overflow-hidden flex-1">
                 <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
-                <div className="min-w-0 space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+                <div className="min-w-0 space-y-2 flex-1">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-14" />
                 </div>
             </div>
         ) : null}
-        <Button variant="ghost" size="icon" onClick={toggleCollapse} className={cn("h-8 w-8 p-0 shrink-0 text-foreground", isMobile ? "hidden" : "hidden md:flex")}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleCollapse} 
+          className={cn(
+            "h-8 w-8 p-0 shrink-0 text-muted-foreground hover:text-foreground", 
+            isMobile ? "hidden" : "hidden md:flex"
+          )}
+        >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-sidebar-scrollbar bg-card">
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-sidebar-scrollbar bg-card">
         {navigation.map((item) => (
           <Link key={item.name} href={item.href} passHref>
             <Button
               variant={pathname === item.href ? "default" : "ghost"}
               className={cn(
-                "w-full justify-start gap-3 h-10 transition-all font-bold rounded-full",
+                "w-full justify-start gap-3 h-9 transition-all font-medium text-sm rounded-lg",
                 collapsed && !isMobile && "justify-center px-0",
                 pathname === item.href 
-                  ? "bg-primary text-primary-foreground shadow-md" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "bg-primary/20 text-primary hover:bg-primary/30 shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
               onClick={isMobile ? closeMobileSidebar : undefined}
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
               {(!collapsed || isMobile) && (
-                <>
-                  <span className="flex-1 text-left truncate">{item.name}</span>
+                <div className="flex-1 flex items-center justify-between overflow-hidden">
+                  <span className="truncate">{item.name}</span>
                   {item.badge > 0 && (
-                    <Badge variant={pathname === item.href ? 'destructive' : 'secondary'} className="ml-auto px-1.5 h-5 min-w-[1.25rem] font-black">
+                    <Badge 
+                      variant={pathname === item.href ? 'secondary' : 'destructive'} 
+                      className="ml-auto px-2 h-5 min-w-fit text-xs font-bold flex-shrink-0"
+                    >
                       {item.badge}
                     </Badge>
                   )}
-                </>
+                </div>
               )}
             </Button>
           </Link>
         ))}
-          
-        <Button
-            variant="outline"
-            className={cn("w-full justify-start gap-3 h-10 bg-muted border-primary text-primary mt-4 font-black rounded-full hover:bg-accent", collapsed && !isMobile && "justify-center px-0")}
-            onClick={openInstallDialog}
-        >
-            <Download className="h-4 w-4 flex-shrink-0" />
-            {(!collapsed || isMobile) && (
-              <span className="flex-1 text-left">Install App</span>
-            )}
-        </Button>
       </nav>
 
-      {currentUser && (['admin', 'super-admin', 'user'].includes(currentUser.role)) && (
-        <div className="p-4 border-t border-border mt-auto bg-card shrink-0">
-            <Button className="w-full gap-2 rounded-full bg-primary text-primary-foreground shadow-lg font-black h-12" size={(collapsed && !isMobile) ? "sm" : "default"} onClick={openCreateComplaint}>
-            <Plus className="h-5 w-5" />
-            {(!collapsed || isMobile) && "CREATE"}
-            </Button>
-        </div>
-      )}
+      {/* Footer Actions */}
+      <div className="p-3 border-t border-border/50 bg-gradient-to-b from-card to-card/50 shrink-0 space-y-2">
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start gap-3 h-9 font-medium text-sm hover:bg-muted/50",
+            collapsed && !isMobile && "justify-center px-0"
+          )}
+          onClick={openInstallDialog}
+        >
+          <Download className="h-4 w-4 flex-shrink-0" />
+          {(!collapsed || isMobile) && <span className="flex-1 text-left">Install App</span>}
+        </Button>
+
+        {currentUser && (['admin', 'super-admin', 'user'].includes(currentUser.role)) && (
+          <Button 
+            className={cn(
+              "w-full gap-2 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-md hover:shadow-lg font-semibold text-sm transition-all",
+              collapsed && !isMobile ? "px-2" : ""
+            )}
+            onClick={openCreateComplaint}
+          >
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            {(!collapsed || isMobile) && <span>New Complaint</span>}
+          </Button>
+        )}
+      </div>
     </div>
   );
 
