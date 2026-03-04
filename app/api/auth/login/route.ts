@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Validate request body
     const body = await request.json();
-    
+
     if (!body.email || !body.password) {
       return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
     }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const user = await User.findOne({ email: sanitizedEmail }).select('+password').populate('tenant');
 
     if (!user) {
@@ -70,13 +70,13 @@ export async function POST(request: NextRequest) {
       );
 
       return NextResponse.json(
-        { 
-          message: 'Account is locked. Please try again later or contact support.' 
+        {
+          message: 'Account is locked. Please try again later or contact support.'
         },
         { status: 403 }
       );
     }
-    
+
     const isPasswordMatch = await bcrypt.compare(body.password, user.password);
 
     if (!isPasswordMatch) {
@@ -99,39 +99,39 @@ export async function POST(request: NextRequest) {
 
     // Tenant check for non-super-admins
     if (user.role !== 'super-admin' && user.tenant) {
-        const tenant = user.tenant as any;
-        
-        // Check for subscription expiry if an end date exists
-        if (tenant.subscriptionEndDate) {
-            const expiryDate = new Date(tenant.subscriptionEndDate);
-            const now = new Date();
-            
-            if (expiryDate < now) {
-                if (tenant.status !== 'inactive') {
-                    // Update tenant status to inactive in DB
-                    await Tenant.findByIdAndUpdate(tenant._id, { status: 'inactive' });
-                    tenant.status = 'inactive';
-                }
-            }
-        }
+      const tenant = user.tenant as any;
 
-        if (tenant.status !== 'active') {
-            await logFailure(
-              user._id.toString(),
-              'LOGIN',
-              'USER',
-              user._id.toString(),
-              `Tenant status: ${tenant.status}`,
-              request
-            );
+      // Check for subscription expiry if an end date exists
+      if (tenant.subscriptionEndDate) {
+        const expiryDate = new Date(tenant.subscriptionEndDate);
+        const now = new Date();
 
-            return NextResponse.json({ 
-                message: 'Your organization\'s account is inactive or suspended. Please contact your admin.',
-                details: `Tenant status: ${tenant.status}`
-            }, { status: 403 });
+        if (expiryDate < now) {
+          if (tenant.status !== 'inactive') {
+            // Update tenant status to inactive in DB
+            await Tenant.findByIdAndUpdate(tenant._id, { status: 'inactive' });
+            tenant.status = 'inactive';
+          }
         }
+      }
+
+      if (tenant.status !== 'active') {
+        await logFailure(
+          user._id.toString(),
+          'LOGIN',
+          'USER',
+          user._id.toString(),
+          `Tenant status: ${tenant.status}`,
+          request
+        );
+
+        return NextResponse.json({
+          message: 'Your organization\'s account is inactive or suspended. Please contact your admin.',
+          details: `Tenant status: ${tenant.status}`
+        }, { status: 403 });
+      }
     }
-    
+
     const sessionToken: SessionData = {
       userId: user._id.toString(),
       email: user.email,
@@ -143,10 +143,10 @@ export async function POST(request: NextRequest) {
     let sessionDuration = 60 * 60 * 8; // Default 8 hours
 
     if (user.role === 'engineer' && user.tenant) {
-        const durationSetting = await Setting.findOne({ tenant: user.tenant._id, key: 'engineerSessionDuration' });
-        if (durationSetting && typeof durationSetting.value === 'number') {
-            sessionDuration = durationSetting.value;
-        }
+      const durationSetting = await Setting.findOne({ tenant: user.tenant._id, key: 'engineerSessionDuration' });
+      if (durationSetting && typeof durationSetting.value === 'number') {
+        sessionDuration = durationSetting.value;
+      }
     }
 
     // Reset login attempts on successful login
@@ -164,16 +164,18 @@ export async function POST(request: NextRequest) {
       request
     );
 
-    cookies().set('session', JSON.stringify(sessionToken), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: sessionDuration, 
-        path: '/',
+    const cookieStore = await cookies();
+
+    cookieStore.set('session', JSON.stringify(sessionToken), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: sessionDuration,
+      path: '/',
     });
 
-    return NextResponse.json({ 
-      message: 'Login successful', 
+    return NextResponse.json({
+      message: 'Login successful',
       role: user.role,
       user: {
         id: user._id,
