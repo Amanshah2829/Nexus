@@ -7,6 +7,8 @@ import { getSession } from '@/app/lib/session';
 import nodemailer from 'nodemailer';
 import { getAndRenderTemplate } from '@/app/lib/templates';
 import Setting from '@/app/models/Setting';
+import { CreateComplaintSchema } from '@/app/lib/validators/schemas';
+import { sanitizeObject, sanitizeArray } from '@/app/lib/security/sanitize-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,7 +98,14 @@ export async function GET(request: NextRequest) {
       .populate('assignedTo', 'name avatar')
       .sort({ createdAt: -1 });
 
-    return NextResponse.json(complaints);
+    // Sanitize response to prevent data exposure
+    const sanitized = sanitizeArray(
+      complaints.map(c => c.toObject()),
+      'complaint',
+      session.role
+    );
+
+    return NextResponse.json(sanitized);
   } catch (error: any) {
     console.error('Failed to fetch complaints:', error);
     return NextResponse.json(
@@ -114,6 +123,9 @@ export async function POST(request: Request) {
     
     const body = await request.json();
 
+    // Validate input with Zod schema
+    const validatedData = CreateComplaintSchema.parse(body);
+
     const nextId = await getNextSequence('complaintId');
     const padded = String(nextId).padStart(3, '0');
     
@@ -123,28 +135,28 @@ export async function POST(request: Request) {
       tenant: session.tenant,
       id: newId,
       ticketNumber: `TKT-${new Date().getFullYear()}-${padded}`,
-      title: body.title,
-      description: body.description,
-      type: body.type || 'complaint',
-      reporter: body.reporter,
-      reporterEmail: body.reporterEmail,
-      status: body.status || 'created',
-      priority: body.priority || 'medium',
-      category: body.category || 'uncategorized',
+      title: validatedData.title,
+      description: validatedData.description,
+      type: 'complaint',
+      reporter: session.email,
+      reporterEmail: session.email,
+      status: 'created',
+      priority: validatedData.priority || 'medium',
+      category: validatedData.category || 'uncategorized',
       building: body.building,
       room: body.room,
       phone: body.phone,
       assignedTo: body.assignedTo,
-      attachments: body.attachments || [],
+      attachments: validatedData.attachments || [],
       history: [
         {
           action: 'Complaint Created',
-          user: body.reporter,
+          userId: session.userId,
           timestamp: new Date(),
         },
       ],
-      originalEmailMessageId: body.originalEmailMessageId,
-      originalEmailReferences: body.originalEmailReferences,
+      createdBy: session.userId,
+      createdByTenant: session.tenant,
     };
 
     const newComplaint = new Complaint(complaintData);
@@ -155,36 +167,57 @@ export async function POST(request: Request) {
     const signature = await getSignature(tenantId);
     const { subject, body: emailBody, cc } = await getAndRenderTemplate(tenantId, 'complaintCreatedEmailTemplate', { complaint: newComplaint });
 
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT || '587'),
-        secure: (process.env.EMAIL_PORT || '587') === '465',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-        tls: {
-            rejectUnauthorized: false
-        }
-    });
+    try {
+      const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_HOST,
+          port: parseInt(process.env.EMAIL_PORT || '587'),
+          secure: (process.env.EMAIL_PORT || '587') === '465',
+          auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASSWORD,
+          },
+          tls: {
+              rejectUnauthorized: false
+          }
+      });
 
-    const mailOptions = {
-        from: process.env.EMAIL_FROM,
-        to: newComplaint.reporterEmail,
-        cc,
-        subject,
-        text: `${emailBody}\n\n${signature}`,
-    };
-    await transporter.sendMail(mailOptions);
+      const mailOptions = {
+          from: process.env.EMAIL_FROM,
+          to: newComplaint.reporterEmail,
+          cc,
+          subject,
+          text: `${emailBody}\n\n${signature}`,
+      };
+      await transporter.sendMail(mailOptions);
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+      // Don't fail the whole request if email fails
+    }
 
-    return NextResponse.json(newComplaint, { status: 201 });
+    // Sanitize response before sending to client
+    const sanitized = sanitizeObject(
+      newComplaint.toObject(),
+      'complaint',
+      session.role
+    );
+
+    return NextResponse.json(sanitized, { status: 201 });
   } catch (error: any) {
-    console.error('Failed to create complaint:', error);
+    console.error('[Complaint Creation Error]', error);
+    
+    // Handle validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { message: 'Validation error', errors: error.errors },
+        { status: 400 }
+      );
+    }
+
     const errorMessage = process.env.NODE_ENV === 'development' 
       ? error.message 
       : 'Failed to create complaint';
     return NextResponse.json(
-      { message: errorMessage, details: error.toString() },
+      { message: errorMessage },
       { status: 500 }
     );
   }
