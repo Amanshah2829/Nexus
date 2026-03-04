@@ -287,8 +287,6 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-      <Toaster />
 
       <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
         <DialogContent className="max-w-md">
@@ -361,6 +359,9 @@ export default function LoginPage() {
             </div>
         </DialogContent>
       </Dialog>
+        </div>
+      </div>
+      <Toaster />
     </>
   )
 }
