@@ -30,6 +30,10 @@ export interface IRemoteSession extends Document {
   allowRemoteInput: boolean;
   allowScreenRecording: boolean;
   
+  // Live Streaming Signaling
+  isBroadcasting: boolean;
+  streamStartedAt?: Date;
+
   // Session Data
   recordingUrl?: string;
   recordingSize?: number; // in bytes
@@ -87,6 +91,9 @@ const RemoteSessionSchema: Schema = new Schema(
     canShareAudio: { type: Boolean, default: true },
     allowRemoteInput: { type: Boolean, default: false },
     allowScreenRecording: { type: Boolean, default: true },
+
+    isBroadcasting: { type: Boolean, default: false },
+    streamStartedAt: { type: Date },
     
     recordingUrl: { type: String },
     recordingSize: { type: Number },

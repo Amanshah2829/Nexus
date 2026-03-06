@@ -18,20 +18,20 @@ export function NotificationsContent() {
 
   const { data: complaints, error, isLoading } = useSWR<IComplaint[]>('/api/complaints?status=all', fetcher)
 
-  const notifications = complaints
-    ? complaints
-        .flatMap(complaint =>
-          complaint.history.map(h => ({
-            ...h,
-            id: `${complaint._id}-${h.timestamp}`,
-            complaintId: complaint._id,
-            complaintTitle: complaint.title,
-            complaintTicketNumber: complaint.ticketNumber,
-            type: h.action.toLowerCase().includes("email") || h.action.toLowerCase().includes("notified") ? "email" : "system",
-          }))
-        )
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    : []
+  const complaintsArray = Array.isArray(complaints) ? complaints : [];
+
+  const notifications = complaintsArray
+    .flatMap(complaint =>
+      (complaint.history || []).map(h => ({
+        ...h,
+        id: `${complaint._id}-${h.timestamp}`,
+        complaintId: complaint._id,
+        complaintTitle: complaint.title,
+        complaintTicketNumber: complaint.ticketNumber,
+        type: h.action.toLowerCase().includes("email") || h.action.toLowerCase().includes("notified") ? "email" : "system",
+      }))
+    )
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     
   const filteredNotifications = notifications.filter(n => filter === 'all' || n.type === filter);
 

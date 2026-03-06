@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import * as React from "react";
@@ -23,14 +21,38 @@ function DynamicBranding() {
     React.useEffect(() => {
         const root = document.documentElement;
         if (tenant?.branding?.enabled) {
-            if (tenant.branding.backgroundColor) root.style.setProperty('--background', tenant.branding.backgroundColor);
-            if (tenant.branding.primaryColor) root.style.setProperty('--primary', tenant.branding.primaryColor);
+            if (tenant.branding.backgroundColor) {
+                root.style.setProperty('--background', tenant.branding.backgroundColor);
+                root.style.setProperty('--card', tenant.branding.backgroundColor);
+                root.style.setProperty('--popover', tenant.branding.backgroundColor);
+                
+                const [h, s, l] = tenant.branding.backgroundColor.split(' ').map(v => parseFloat(v));
+                if (l < 50) {
+                    root.style.setProperty('--foreground', '210 40% 98%');
+                    root.style.setProperty('--card-foreground', '210 40% 98%');
+                    root.style.setProperty('--border', '240 3.7% 15.9%');
+                    root.style.setProperty('--primary-foreground', '222.2 84% 4.9%');
+                } else {
+                    root.style.setProperty('--foreground', '222.2 84% 4.9%');
+                    root.style.setProperty('--card-foreground', '222.2 84% 4.9%');
+                    root.style.setProperty('--border', '214.3 31.8% 91.4%');
+                    root.style.setProperty('--primary-foreground', '210 40% 98%');
+                }
+            }
+            if (tenant.branding.primaryColor) {
+                root.style.setProperty('--primary', tenant.branding.primaryColor);
+            }
             if (tenant.branding.accentColor) root.style.setProperty('--accent', tenant.branding.accentColor);
         } else {
-            // Reset to default if branding is disabled or not present
              root.style.removeProperty('--background');
+             root.style.removeProperty('--card');
+             root.style.removeProperty('--popover');
+             root.style.removeProperty('--foreground');
+             root.style.removeProperty('--card-foreground');
+             root.style.removeProperty('--border');
              root.style.removeProperty('--primary');
              root.style.removeProperty('--accent');
+             root.style.removeProperty('--primary-foreground');
         }
     }, [tenant]);
 
@@ -44,21 +66,18 @@ function TenantStatusChecker() {
         revalidateIfStale: true,
     });
 
-    // Don't block super admins or other global roles
     if (!user || ['super-admin', 'sales', 'micro-admin', 'nano-admin'].includes(user.role)) {
         return null;
     }
 
-    // Don't block users without a tenant (should only be super admins, but as a safeguard)
     if (!user.tenant) {
         return null;
     }
 
     if (isLoading) {
-        return null; // Don't show overlay during initial load
+        return null;
     }
     
-    // Don't show if there's a network error fetching tenant status
     if (error) {
         return null;
     }

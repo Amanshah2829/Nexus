@@ -24,7 +24,7 @@ import {
   ShieldCheck,
   ChevronRight,
   ArrowUpRight,
-  Globe,
+  Monitor
 } from "lucide-react"
 import useSWR from "swr"
 import Link from "next/link"
@@ -73,21 +73,36 @@ function EngineerDashboard() {
       : null,
     fetcher
   )
+  const { data: sessionsData } = useSWR('/api/remote-sessions', fetcher, { refreshInterval: 10000 });
 
   if (isLoading) return <div className="p-6 bg-background"><LoadingAnimation /></div>
 
   const complaintsArray = Array.isArray(complaints) ? complaints : [];
+  const activeSessionsCount = sessionsData?.sessions?.filter((s: any) => ['pending', 'approved', 'active'].includes(s.status)).length || 0;
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 bg-background">
-      <header>
-        <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-                <Wrench className="h-6 w-6" />
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <div className="flex items-center gap-3 mb-2">
+                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
+                    <Wrench className="h-6 w-6" />
+                </div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Active Assignments</h1>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Active Assignments</h1>
+            <p className="text-muted-foreground text-lg font-medium">Field tasks awaiting your immediate resolution.</p>
         </div>
-        <p className="text-muted-foreground text-lg">Field tasks awaiting your immediate resolution.</p>
+        <div className="flex gap-4">
+            <Card className="bg-card border-primary/20 shadow-lg px-6 py-3 rounded-2xl flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Monitor className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Active Remote</p>
+                    <p className="text-xl font-black text-foreground">{activeSessionsCount}</p>
+                </div>
+            </Card>
+        </div>
       </header>
 
       <div className="grid gap-4">
@@ -126,33 +141,40 @@ function EngineerDashboard() {
 function TenantAndAuditDashboard({ currentUser }: { currentUser?: IUser }) {
   const { data: complaints, error: complaintsError } = useSWR<IComplaint[]>("/api/complaints?brief=true", fetcher)
   const { data: users, error: usersError } = useSWR<IUser[]>("/api/users", fetcher)
+  const { data: sessionsData } = useSWR('/api/remote-sessions', fetcher, { refreshInterval: 10000 });
   const [viewMode, setViewMode] = useState<"management" | "audit">("management")
 
   if (complaintsError || usersError) return <div className="p-10 text-center text-destructive bg-background"><AlertCircle className="h-10 w-10 mx-auto mb-2" /><p>Failed to load dashboard data.</p></div>;
 
   const complaintsArray = Array.isArray(complaints) ? complaints : [];
   const usersArray = Array.isArray(users) ? users : [];
+  const activeSessionsCount = sessionsData?.sessions?.filter((s: any) => ['pending', 'approved', 'active'].includes(s.status)).length || 0;
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto bg-background">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Tabs value={viewMode} onValueChange={value => setViewMode(value as any)} className="w-auto">
             <TabsList className="bg-card border border-border p-1 rounded-full h-12">
-                <TabsTrigger value="management" className="rounded-full px-8 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-black transition-all">MANAGEMENT</TabsTrigger>
-                <TabsTrigger value="audit" className="rounded-full px-8 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-black transition-all">COMPLIANCE</TabsTrigger>
+                <TabsTrigger value="management" className="rounded-full px-8 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground hover:text-foreground font-black transition-all">MANAGEMENT</TabsTrigger>
+                <TabsTrigger value="audit" className="rounded-full px-8 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-muted-foreground hover:text-foreground font-black transition-all">COMPLIANCE</TabsTrigger>
             </TabsList>
         </Tabs>
         {viewMode === 'management' && (
-            <Button size="lg" className="rounded-full shadow-xl px-8 bg-primary text-primary-foreground font-black hover:scale-105 transition-transform" asChild>
-                <Link href="/complaints"><Plus className="h-5 w-5 mr-2" /> CREATE TICKET</Link>
-            </Button>
+            <div className="flex items-center gap-3">
+                <Button variant="outline" className="rounded-full h-12 px-6 font-bold border-primary text-primary hover:bg-primary/5" asChild>
+                    <Link href="/remote-sessions"><Monitor className="h-4 w-4 mr-2" /> {activeSessionsCount} ACTIVE SESSIONS</Link>
+                </Button>
+                <Button size="lg" className="rounded-full h-12 shadow-xl px-8 bg-primary text-primary-foreground font-black hover:scale-105 transition-transform" asChild>
+                    <Link href="/complaints"><Plus className="h-5 w-5 mr-2" /> CREATE TICKET</Link>
+                </Button>
+            </div>
         )}
       </div>
 
       <AnimatePresence mode="wait">
         <motion.div key={viewMode} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
             {viewMode === "management" ? (
-                <ManagementDashboard complaints={complaintsArray} users={usersArray} />
+                <ManagementDashboard complaints={complaintsArray} users={usersArray} activeSessionsCount={activeSessionsCount} />
             ) : (
                 <AuditDashboard complaints={complaintsArray} />
             )}
@@ -162,7 +184,7 @@ function TenantAndAuditDashboard({ currentUser }: { currentUser?: IUser }) {
   )
 }
 
-function ManagementDashboard({ complaints, users }: { complaints: IComplaint[]; users: IUser[] }) {
+function ManagementDashboard({ complaints, users, activeSessionsCount }: { complaints: IComplaint[]; users: IUser[]; activeSessionsCount: number }) {
   const activeTickets = useMemo(() => complaints.filter(c => c.status !== "closed" && c.status !== "archived"), [complaints])
   const critical = useMemo(() => activeTickets.filter(c => c.priority === "critical"), [activeTickets])
 
@@ -170,9 +192,9 @@ function ManagementDashboard({ complaints, users }: { complaints: IComplaint[]; 
     <div className="space-y-8 bg-background">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <Kpi title="Active Tickets" value={activeTickets.length} icon={Activity} />
+        <Kpi title="Live Support" value={activeSessionsCount} icon={Monitor} color="blue" />
         <Kpi title="Critical" value={critical.length} icon={Flame} danger />
         <Kpi title="Resolved Today" value={complaints.filter(c => c.status === "closed").length} icon={ShieldCheck} />
-        <Kpi title="Engineers" value={users.filter(u => u.role === "engineer").length} icon={Users} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -189,14 +211,14 @@ function ManagementDashboard({ complaints, users }: { complaints: IComplaint[]; 
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
             {activeTickets.slice(0, 6).map(t => (
-              <div key={t._id} className="group flex items-center justify-between p-4 rounded-2xl border border-border bg-background hover:bg-accent transition-all cursor-default">
+              <div key={t._id} className="group flex items-center justify-between p-4 rounded-2xl border border-border bg-card hover:bg-accent transition-all cursor-default shadow-sm">
                 <div className="flex items-center gap-4 min-w-0">
                     <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", t.priority === 'critical' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-primary')}>
                         <Activity className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
                         <p className="font-bold text-sm truncate text-foreground">{t.title}</p>
-                        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-tighter">{t.id} &bull; {t.status}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-tighter font-bold">{t.id} &bull; {t.status}</p>
                     </div>
                 </div>
                 <Badge variant={t.priority === "critical" ? "destructive" : "secondary"} className="rounded-full px-3 font-bold">{t.priority}</Badge>
@@ -246,7 +268,7 @@ function ManagementDashboard({ complaints, users }: { complaints: IComplaint[]; 
 
 function AuditDashboard({ complaints }: { complaints: IComplaint[] }) {
   const sortedComplaints = useMemo(() => 
-    [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    Array.isArray(complaints) ? [...complaints].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : []
   , [complaints]);
 
   return (
@@ -313,7 +335,7 @@ function AuditDashboard({ complaints }: { complaints: IComplaint[] }) {
   )
 }
 
-function Kpi({ title, value, icon: Icon, danger }: any) {
+function Kpi({ title, value, icon: Icon, danger, color }: any) {
   return (
     <Card className={cn("bg-card border-border transition-all hover:border-primary/20 shadow-md", danger && "border-destructive/20")}>
       <CardContent className="p-6 flex items-center justify-between">
@@ -321,7 +343,11 @@ function Kpi({ title, value, icon: Icon, danger }: any) {
           <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
           <p className="text-3xl font-black tracking-tight text-foreground">{value}</p>
         </div>
-        <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", danger ? "bg-destructive text-destructive-foreground" : "bg-muted text-primary")}>
+        <div className={cn(
+            "h-12 w-12 rounded-2xl flex items-center justify-center", 
+            danger ? "bg-destructive text-destructive-foreground" : 
+            color === 'blue' ? "bg-blue-100 text-blue-600" : "bg-muted text-primary"
+        )}>
             <Icon className="h-6 w-6" />
         </div>
       </CardContent>
@@ -335,7 +361,7 @@ function SuperAdminDashboard() {
             <header className="flex flex-col gap-2">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-                        <Globe className="h-6 w-6" />
+                        <Monitor className="h-6 w-6" />
                     </div>
                     <h1 className="text-4xl font-black tracking-tight text-foreground uppercase">GLOBAL COMMAND</h1>
                 </div>

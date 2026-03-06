@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect, forwardRef } from "react"
@@ -49,6 +48,7 @@ import React from "react"
 import { IAsset } from "@/app/models/Asset"
 import { useRouter } from "next/navigation"
 import { ScheduleVisitDialog } from "./complaints-content"
+import { ComplaintRemoteSupportButton } from "./complaint-remote-support-button"
 
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -255,6 +255,14 @@ function TaskDetailView({ complaint, onUpdate, currentUser, onBackClick }: { com
                     <FileText className="h-4 w-4 mr-2" />
                     View Report
                 </Button>
+            </div>
+            <div className="p-4 border-b border-border bg-muted/10">
+              <ComplaintRemoteSupportButton 
+                complaintId={complaint._id} 
+                complaintTitle={complaint.title} 
+                userRole={currentUser.role} 
+                isComplainer={false}
+              />
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -715,5 +723,3 @@ function EmailPreviewDialog({ isOpen, onOpenChange, title, initialBody, onConfir
         </Dialog>
     );
 }
-
-    

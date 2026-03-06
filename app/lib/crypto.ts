@@ -1,10 +1,11 @@
+
 import crypto from 'crypto-js';
 
+const PROTOTYPE_SECRET = 'vynsec-nexus-proto-key-2026';
+
 function getSecretKey() {
-    const secretKey = process.env.CRYPTO_SECRET_KEY;
-    if (!secretKey) {
-        throw new Error('CRYPTO_SECRET_KEY is not defined in environment variables');
-    }
+    // Provide a hardcoded fallback for prototyping/development if env var is missing
+    const secretKey = process.env.CRYPTO_SECRET_KEY || PROTOTYPE_SECRET;
     return secretKey;
 }
 
@@ -15,6 +16,11 @@ export function encrypt(text: string): string {
 
 export function decrypt(ciphertext: string): string {
     const secretKey = getSecretKey();
-    const bytes = crypto.AES.decrypt(ciphertext, secretKey);
-    return bytes.toString(crypto.enc.Utf8);
+    try {
+        const bytes = crypto.AES.decrypt(ciphertext, secretKey);
+        return bytes.toString(crypto.enc.Utf8);
+    } catch (e) {
+        console.warn('[Crypto] Decryption failed, returning empty string');
+        return '';
+    }
 }

@@ -49,6 +49,7 @@ import { Label } from "@/app/components/ui/label"
 import { useDialogStore } from "@/app/lib/store"
 import { cn } from "@/app/lib/utils"
 import { useRouter } from "next/navigation"
+import { ComplaintRemoteSupportButton } from "./complaint-remote-support-button"
 
 export type IComplaint = {
   _id: string;
@@ -112,6 +113,7 @@ export function ComplaintsContent() {
     fetcher
   )
    const { data: users } = useSWR<IUser[]>('/api/users', fetcher);
+   const { data: currentUser } = useSWR<IUser>('/api/users/me', fetcher);
 
   useEffect(() => {
     if (!selected && complaints?.length && window.innerWidth >= 768) {
@@ -237,6 +239,7 @@ export function ComplaintsContent() {
         {selected ? (
           <TicketContext 
             ticket={selected} 
+            userRole={currentUser?.role || 'viewer'}
             onBack={() => setSelected(null)} 
             onComplaintUpdate={() => mutate(`/api/complaints?status=${filterStatus}&search=${searchQuery}`)}
             onEditClick={() => setIsEditComplaintOpen(true)}
@@ -301,8 +304,9 @@ export function ComplaintsContent() {
   )
 }
 
-function TicketContext({ ticket, onBack, onComplaintUpdate, onEditClick, onScheduleClick }: { 
+function TicketContext({ ticket, userRole, onBack, onComplaintUpdate, onEditClick, onScheduleClick }: { 
     ticket: IComplaint; 
+    userRole: string;
     onBack: () => void; 
     onComplaintUpdate: () => void;
     onEditClick: () => void;
@@ -356,6 +360,15 @@ function TicketContext({ ticket, onBack, onComplaintUpdate, onEditClick, onSched
             </DropdownMenu>
         </div>
       </header>
+
+      <div className="px-6 py-4 bg-muted/20 border-b border-border">
+        <ComplaintRemoteSupportButton 
+          complaintId={ticket._id} 
+          complaintTitle={ticket.title} 
+          userRole={userRole} 
+          isComplainer={false}
+        />
+      </div>
 
       <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="border-b border-border shrink-0 bg-card">

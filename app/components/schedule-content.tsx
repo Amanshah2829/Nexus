@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState, useMemo, DragEvent } from "react"
@@ -20,7 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-// Define time slots for the calendar view
 const timeSlots = Array.from({ length: 12 }, (_, i) => {
     const hour = i + 9; // 9 AM to 8 PM
     return `${hour % 12 === 0 ? 12 : hour % 12}${hour < 12 ? 'am' : 'pm'}`;
@@ -33,26 +31,28 @@ export function ScheduleContent() {
   const { data: complaints, error: complaintsError, mutate: mutateComplaints } = useSWR<IComplaint[]>('/api/complaints', fetcher)
   const { data: users, error: usersError } = useSWR<IUser[]>('/api/users', fetcher)
 
-  const { toast } = useToast();
   const isMobile = useIsMobile();
+
+  const complaintsArray = Array.isArray(complaints) ? complaints : [];
+  const usersArray = Array.isArray(users) ? users : [];
 
   const isLoading = !complaints || !users;
 
   const unscheduledComplaints = useMemo(() => {
-    return complaints?.filter(c => !c.scheduledAt && c.status !== 'closed' && c.status !== 'archived') || []
-  }, [complaints])
+    return complaintsArray.filter(c => !c.scheduledAt && c.status !== 'closed' && c.status !== 'archived')
+  }, [complaintsArray])
 
   const scheduledComplaints = useMemo(() => {
-    return complaints?.filter(c => {
+    return complaintsArray.filter(c => {
         if(!c.scheduledAt) return false;
         const scheduledDate = new Date(c.scheduledAt);
         return scheduledDate.toDateString() === currentDate.toDateString();
-    }) || []
-  }, [complaints, currentDate])
+    })
+  }, [complaintsArray, currentDate])
 
   const engineers = useMemo(() => {
-    return users?.filter(u => u.role === 'engineer' && u.status === 'active') || []
-  }, [users])
+    return usersArray.filter(u => u.role === 'engineer' && u.status === 'active')
+  }, [usersArray])
   
   const changeDay = (amount: number) => {
     setCurrentDate(prev => {
@@ -74,7 +74,6 @@ export function ScheduleContent() {
     if (complaint) {
         const scheduledTime = new Date(currentDate);
         scheduledTime.setHours(hour, 0, 0, 0);
-
         setComplaintToSchedule({ ...complaint, assignedTo: engineerId as any, scheduledAt: scheduledTime } as IComplaint);
     }
   }
@@ -89,7 +88,7 @@ export function ScheduleContent() {
   }
 
   if (isLoading) return <div className="h-full flex items-center justify-center"><LoadingAnimation/></div>
-  if (complaintsError || usersError) return <div>Failed to load schedule data</div>
+  if (complaintsError || usersError) return <div className="p-10 text-center text-destructive">Failed to load schedule data</div>
 
   const UnscheduledColumn = (
     <div className="flex flex-col h-full min-h-0">
@@ -123,7 +122,7 @@ export function ScheduleContent() {
                 <EngineerTimeline 
                     key={engineer._id} 
                     engineer={engineer} 
-                    tasks={scheduledComplaints.filter(c => (c.assignedTo as any)?._id === engineer._id)} 
+                    tasks={scheduledComplaints.filter(c => (c.assignedTo as any)?._id === engineer._id || c.assignedTo === engineer._id)} 
                     onDrop={handleDrop}
                     currentDate={currentDate}
                 />
@@ -131,7 +130,6 @@ export function ScheduleContent() {
         </div>
     </div>
   );
-
 
   return (
     <div className="p-4 md:p-6 space-y-6 flex flex-col h-full">
@@ -167,7 +165,6 @@ export function ScheduleContent() {
             {EngineerTimelines}
         </div>
       )}
-
 
        {complaintToSchedule && (
         <ScheduleVisitDialog
@@ -237,38 +234,38 @@ function EngineerTimeline({ engineer, tasks, onDrop, currentDate }: { engineer: 
         <div className="flex flex-col h-full">
              <div className="flex items-center gap-3 p-2 mb-2 sticky top-0 bg-background/80 backdrop-blur-sm z-10">
                 <Avatar>
-                    <AvatarImage src={engineer.avatar || `https://avatar.vercel.sh/${engineer.name}.png`} />
-                    <AvatarFallback>{engineer.name.split(' ').map(n=>n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={engineer.avatar || `https://avatar.vercel.sh/${engineer.name.replace(/\s+/g, '')}.png`} />
+                    <AvatarFallback>{engineer.name?.split(' ').map(n=>n[0]).join('') || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
-                    <p className="font-medium">{engineer.name}</p>
-                    <p className="text-xs text-muted-foreground">{tasks.length} tasks scheduled</p>
+                    <p className="font-medium text-sm">{engineer.name}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{tasks.length} Assigned</p>
                 </div>
             </div>
-            <div className="flex-1 relative border-l border-dashed">
+            <div className="flex-1 relative border-l border-dashed border-border/50">
                  {timeSlots.map((slot, index) => {
                     const hour = index + 9;
                     return (
                         <div 
                             key={slot} 
-                            className={cn("h-20 border-t border-dashed relative", isPastDate && "bg-muted/30 cursor-not-allowed")}
+                            className={cn("h-20 border-t border-dashed border-border/30 relative", isPastDate && "bg-muted/30 cursor-not-allowed")}
                             onDrop={(e) => {
                                 if(isPastDate) return;
                                 onDrop(e, engineer._id, hour)
                             }}
                             onDragOver={(e) => {
                                 if(isPastDate) return;
-                                handleDragOver(e)
+                                e.preventDefault();
                             }}
                         >
-                            <span className="absolute -left-8 top-0 text-xs text-muted-foreground">{slot}</span>
+                            <span className="absolute -left-8 top-0 text-[10px] font-mono text-muted-foreground font-black uppercase">{slot}</span>
                         </div>
                     )
                  })}
 
                 {tasks.map(task => {
                     const scheduledTime = new Date(task.scheduledAt!);
-                    const topPosition = (scheduledTime.getHours() - 9 + (scheduledTime.getMinutes() / 60)) * 5; // 5rem per hour (h-20)
+                    const topPosition = (scheduledTime.getHours() - 9 + (scheduledTime.getMinutes() / 60)) * 5; 
                     return (
                         <div
                             key={task._id}
@@ -288,17 +285,14 @@ function ScheduledTaskCard({ task }: { task: IComplaint }) {
     const scheduledTime = task.scheduledAt ? new Date(task.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A';
     
     return (
-        <Card className="bg-card shadow-md">
+        <Card className="bg-card shadow-md border-primary/20 ring-1 ring-primary/5">
             <CardContent className="p-3">
-                <p className="font-semibold text-sm mb-1 line-clamp-1">{task.title}</p>
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3"/>{task.room}</div>
-                    <div className="flex items-center gap-1.5"><Clock className="h-3 w-3"/>{scheduledTime}</div>
+                <p className="font-bold text-xs mb-1 line-clamp-1 text-foreground">{task.title}</p>
+                <div className="flex justify-between items-center text-[10px] text-muted-foreground font-black uppercase">
+                    <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary"/>{task.room}</div>
+                    <div className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-primary"/>{scheduledTime}</div>
                 </div>
             </CardContent>
         </Card>
     )
-}
-function handleDragOver(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
 }

@@ -38,65 +38,77 @@ export async function PATCH(
       );
     }
 
-    // Only complainer can modify control permissions
-    if (remoteSession.complainer.toString() !== sessionData.userId) {
+    // Authorization: User must be a participant in the session
+    // Using string comparison for robustness
+    const isEngineer = remoteSession.engineer.toString() === sessionData.userId;
+    const isComplainer = remoteSession.complainer.toString() === sessionData.userId;
+
+    if (!isEngineer && !isComplainer) {
       return NextResponse.json(
-        { error: 'Only the complainer can modify control permissions' },
+        { error: 'Only session participants can modify control permissions' },
         { status: 403 }
       );
     }
 
-    if (remoteSession.status !== 'active') {
-      return NextResponse.json(
-        { error: 'Can only modify permissions for active sessions' },
-        { status: 409 }
-      );
-    }
-
+    const body = await request.json();
     const {
       controlLevel,
       allowRemoteInput,
       allowScreenRecording,
       canShareScreen,
       canShareAudio,
-    } = await request.json();
+      isBroadcasting,
+    } = body;
 
-    // Update control level
-    if (controlLevel && ['view-only', 'mouse-only', 'full-control'].includes(controlLevel)) {
-      remoteSession.controlLevel = controlLevel;
-    }
-
-    // Update individual permissions
-    if (allowRemoteInput !== undefined) {
-      remoteSession.allowRemoteInput = allowRemoteInput;
-    }
-    if (allowScreenRecording !== undefined) {
-      remoteSession.allowScreenRecording = allowScreenRecording;
-    }
-    if (canShareScreen !== undefined) {
-      remoteSession.canShareScreen = canShareScreen;
-    }
-    if (canShareAudio !== undefined) {
-      remoteSession.canShareAudio = canShareAudio;
+    // Only complainer (staff) can modify security/privacy permissions and broadcast state
+    if (isComplainer) {
+      if (controlLevel && ['view-only', 'mouse-only', 'full-control'].includes(controlLevel)) {
+        remoteSession.controlLevel = controlLevel;
+      }
+      if (allowRemoteInput !== undefined) {
+        remoteSession.allowRemoteInput = allowRemoteInput;
+      }
+      if (allowScreenRecording !== undefined) {
+        remoteSession.allowScreenRecording = allowScreenRecording;
+      }
+      if (canShareScreen !== undefined) {
+        remoteSession.canShareScreen = canShareScreen;
+      }
+      if (canShareAudio !== undefined) {
+        remoteSession.canShareAudio = canShareAudio;
+      }
+      if (isBroadcasting !== undefined) {
+        remoteSession.isBroadcasting = isBroadcasting;
+        if (isBroadcasting) {
+          remoteSession.streamStartedAt = new Date();
+          
+          // Add a system message only when broadcasting starts
+          remoteSession.chatMessages.push({
+            sender: sessionData.userId as any,
+            senderName: 'System',
+            message: 'Live stream broadcast started',
+            timestamp: new Date(),
+            messageType: 'system',
+          });
+        } else {
+          remoteSession.chatMessages.push({
+            sender: sessionData.userId as any,
+            senderName: 'System',
+            message: 'Live stream broadcast ended',
+            timestamp: new Date(),
+            messageType: 'system',
+          });
+        }
+      }
     }
 
     remoteSession.actionsLog.push({
-      action: 'control_permissions_updated',
+      action: 'session_updated',
       timestamp: new Date(),
       details: {
         updatedBy: sessionData.userId,
-        controlLevel,
-        allowRemoteInput,
-        allowScreenRecording,
+        ...body
       },
-    });
-
-    remoteSession.chatMessages.push({
-      sender: sessionData.userId as any,
-      senderName: 'System',
-      message: `Control permissions updated to ${controlLevel || 'same level'}`,
-      timestamp: new Date(),
-      messageType: 'system',
     });
 
     await remoteSession.save();
@@ -105,11 +117,11 @@ export async function PATCH(
     await remoteSession.populate('complainer', 'name email');
 
     return NextResponse.json({
-      message: 'Control permissions updated',
+      message: 'Session updated',
       session: remoteSession,
     });
   } catch (error) {
-    console.error('Error updating control permissions:', error);
+    console.error('Error updating remote session:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

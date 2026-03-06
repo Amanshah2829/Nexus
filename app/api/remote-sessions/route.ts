@@ -35,7 +35,12 @@ export async function GET(request: NextRequest) {
     const complaintId = searchParams.get('complaintId');
     const userId = searchParams.get('userId');
 
-    let query: any = { tenant: sessionData.tenant };
+    let query: any = {};
+    
+    // Non-super-admins only see their tenant's sessions
+    if (sessionData.role !== 'super-admin') {
+      query.tenant = sessionData.tenant;
+    }
 
     if (status) {
       query.status = status;
@@ -90,10 +95,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Only engineers can request remote support
-    if (sessionData.role !== 'engineer') {
+    // Personnel (Engineer, Admin, Super Admin) can request remote support
+    const allowedRoles = ['engineer', 'super-admin', 'admin', 'tenant-admin'];
+    if (!allowedRoles.includes(sessionData.role)) {
       return NextResponse.json(
-        { error: 'Only engineers can request remote sessions' },
+        { error: 'Only authorized personnel can request remote sessions' },
         { status: 403 }
       );
     }
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get complaint and validate
-    const complaint = await Complaint.findById(complaintId).populate('reporter');
+    const complaint = await Complaint.findById(complaintId);
     if (!complaint) {
       return NextResponse.json(
         { error: 'Complaint not found' },
@@ -116,10 +122,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (complaint.tenant.toString() !== sessionData.tenant) {
+    // Verify tenant access for non-super-admins
+    if (sessionData.role !== 'super-admin' && complaint.tenant.toString() !== sessionData.tenant) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
+      );
+    }
+
+    // Find the reporter user to set as the complainer in the session
+    const complainerUser = await User.findOne({ email: complaint.reporterEmail });
+    if (!complainerUser) {
+      return NextResponse.json(
+        { error: 'The reporter of this complaint does not have a user account required for remote support.' },
+        { status: 400 }
       );
     }
 
@@ -139,12 +155,12 @@ export async function POST(request: NextRequest) {
     // Create new session
     const newSession = new RemoteSession({
       id: randomUUID(),
-      tenant: sessionData.tenant,
+      tenant: complaint.tenant,
       complaint: complaintId,
       engineer: sessionData.userId,
-      complainer: complaint.reporter,
+      complainer: complainerUser._id,
       reason,
-      estimatedDuration,
+      estimatedDuration: estimatedDuration || 15,
       status: 'pending',
       controlLevel: 'view-only',
       canShareScreen: true,
@@ -163,6 +179,18 @@ export async function POST(request: NextRequest) {
     });
 
     await newSession.save();
+
+    // Update complaint history so it shows up in notifications for the user
+    await Complaint.findByIdAndUpdate(complaintId, {
+      $push: {
+        history: {
+          action: 'Remote Support Requested',
+          user: sessionData.name,
+          timestamp: new Date(),
+          details: { message: reason }
+        }
+      }
+    });
 
     // Populate references
     await newSession.populate('engineer', 'name email');

@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState, useMemo, useEffect, forwardRef, createRef } from "react";
@@ -280,7 +279,7 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
     const isMobile = useIsMobile();
     
     const { data: assetsData, error, isLoading, mutate: mutateAssets } = useSWR<IAsset[]>('/api/inventory/assets?status=all&sortKey=serialNumber&sortDirection=asc', fetcher);
-    const assets = assetsData || [];
+    const assets = Array.isArray(assetsData) ? assetsData : [];
     const { toast } = useToast();
 
     const handleSort = (key: string) => {
@@ -293,7 +292,7 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
     };
     
     const filteredAssets = useMemo(() => {
-        let filtered = [...(assets || [])];
+        let filtered = [...assets];
 
         if (filterStatus !== 'all') {
             filtered = filtered.filter(asset => asset.status === filterStatus);
@@ -393,9 +392,9 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
     };
 
     const stats = {
-        total: assets?.length || 0,
-        available: assets?.filter(e => e.status === 'available').length || 0,
-        allotted: assets?.filter(e => e.status === 'allotted').length || 0,
+        total: assets.length,
+        available: assets.filter(e => e.status === 'available').length,
+        allotted: assets.filter(e => e.status === 'allotted').length,
     };
     
     const SortableHeader = ({ sortKeyName, children, className }: { sortKeyName: string; children: React.ReactNode, className?: string }) => (
@@ -497,7 +496,7 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
                 <CardContent>
                     {isMobile ? (
                         <div className="space-y-4">
-                            {(filteredAssets || []).map(asset => (
+                            {filteredAssets.map(asset => (
                                 <Card key={asset._id} className="glass-card" onClick={() => onRowClick(asset)}>
                                     <CardContent className="p-4 space-y-2">
                                         <div className="flex justify-between items-start">
@@ -522,10 +521,10 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
                                     <TableRow>
                                         <TableHead className="w-12">
                                             <Checkbox
-                                                checked={filteredAssets && selectedAssets.length === filteredAssets.length && filteredAssets.length > 0}
+                                                checked={filteredAssets.length > 0 && selectedAssets.length === filteredAssets.length}
                                                 onCheckedChange={(checked) => {
                                                     if (checked) {
-                                                        setSelectedAssets(filteredAssets?.map(a => a._id) || []);
+                                                        setSelectedAssets(filteredAssets.map(a => a._id));
                                                     } else {
                                                         setSelectedAssets([]);
                                                     }
@@ -557,7 +556,7 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
                                         </TableCell>
                                         </TableRow>
                                     )}
-                                    {(filteredAssets || []).map((asset) => (
+                                    {filteredAssets.map((asset) => (
                                         <TableRow key={asset._id} data-state={selectedAssets.includes(asset._id) && "selected"}>
                                             <TableCell>
                                                 <Checkbox
@@ -603,11 +602,12 @@ function AssetListTab({ onRowClick }: { onRowClick: (asset: IAsset) => void }) {
 
 
 function AssetLogTab({ onImportClick }: { onImportClick: () => void }) {
-    const { data: logs, error, isLoading } = useSWR<IAssetLog[]>("/api/inventory/logs", fetcher);
+    const { data: logsData, error, isLoading } = useSWR<IAssetLog[]>("/api/inventory/logs", fetcher);
+    const logs = Array.isArray(logsData) ? logsData : [];
     const [searchQuery, setSearchQuery] = useState("");
     const isMobile = useIsMobile();
 
-    const filteredLogs = logs?.filter(log =>
+    const filteredLogs = logs.filter(log =>
         ((log.asset as IAsset)?.serialNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (log.details?.allottedTo?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (log.user || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -637,7 +637,7 @@ function AssetLogTab({ onImportClick }: { onImportClick: () => void }) {
             <CardContent>
                 {isMobile ? (
                     <div className="space-y-4">
-                         {(filteredLogs || []).map((log) => (
+                         {filteredLogs.map((log) => (
                             <Card key={log._id} className="glass-card">
                                 <CardContent className="p-4 space-y-2">
                                     <div className="flex justify-between items-start">
@@ -685,7 +685,7 @@ function AssetLogTab({ onImportClick }: { onImportClick: () => void }) {
                                         </TableCell>
                                     </TableRow>
                                 )}
-                                {(filteredLogs || []).map((log) => (
+                                {filteredLogs.map((log) => (
                                     <TableRow key={log._id}>
                                         <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
                                         <TableCell>
@@ -942,7 +942,7 @@ function ImportAssetDialog({ isOpen, onClose, onImport }: { isOpen: boolean, onC
             <p className="text-xs text-muted-foreground">
               Your file must be a CSV with the following headers (or similar variations):
             </p>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex wrap gap-2 mt-2">
               {requiredHeaders.map(h => <Badge key={h} variant="secondary">{h}</Badge>)}
             </div>
           </div>
@@ -1042,7 +1042,7 @@ function ImportLogDialog({ isOpen, onClose, onImport }: { isOpen: boolean, onClo
             <p className="text-xs text-muted-foreground">
               Your file must be a CSV with headers. `assetSerialNumber` and `action` are required.
             </p>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex wrap gap-2 mt-2">
               {requiredHeaders.map(h => <Badge key={h} variant="secondary">{h}</Badge>)}
             </div>
              <p className="text-xs text-muted-foreground mt-2">
@@ -1102,7 +1102,8 @@ function ImportAllotmentDialog({ isOpen, onClose, onImport }: { isOpen: boolean,
   const [allotmentsToUpdate, setAllotmentsToUpdate] = useState<any[]>([]);
   const [allotmentsForNewAssets, setAllotmentsForNewAssets] = useState<any[]>([]);
 
-  const { data: assets, isLoading: isLoadingAssets } = useSWR<IAsset[]>('/api/inventory/assets?status=all', fetcher);
+  const { data: assetsData, isLoading: isLoadingAssets } = useSWR<IAsset[]>('/api/inventory/assets?status=all', fetcher);
+  const assets = Array.isArray(assetsData) ? assetsData : [];
 
  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -1192,7 +1193,7 @@ function ImportAllotmentDialog({ isOpen, onClose, onImport }: { isOpen: boolean,
             <div className="space-y-4">
             <div className="p-4 border-dashed border-2 rounded-md">
                 <p className="text-sm font-medium mb-2">CSV Format Requirements:</p>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex wrap gap-2 mt-2">
                 {requiredHeaders.map(h => <Badge key={h} variant="secondary">{h}</Badge>)}
                 </div>
             </div>

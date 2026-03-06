@@ -1,3 +1,4 @@
+
 // app/components/inbox-content.tsx
 "use client"
 
@@ -16,7 +17,6 @@ import {
   Search,
   ChevronLeft,
   ChevronsRightLeft,
-  Sparkles,
   Plus,
   Send as SendIcon,
 } from "lucide-react"
@@ -40,10 +40,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { CreateComplaintForm, fetcher } from "@/components/complaints-content"
-import {
-  extractComplaintInfo,
-  ExtractComplaintInfoOutput,
-} from "@/ai/flows/extract-complaint-info-flow"
 import { cn } from "@/app/lib/utils"
 
 type Mailbox = "inbox" | "sent" | "drafts" | "trash" | "archive"
@@ -463,33 +459,13 @@ function CreateTicketFromEmailForm({
     category: "uncategorized",
     type: "complaint",
   })
-  const [isExtracting, setIsExtracting] = useState(false)
-
-  const handleExtractInfo = async () => {
-    setIsExtracting(true)
-    try {
-      const extracted: ExtractComplaintInfoOutput = await extractComplaintInfo({
-        emailBody: email.text,
-      })
-      setFormData((prev) => ({
-        ...prev,
-        building: extracted.building || prev.building,
-        room: extracted.room || prev.room,
-        phone: extracted.phone || prev.phone,
-      }))
-    } catch (e) {
-      console.error("Extraction failed", e)
-    } finally {
-      setIsExtracting(false)
-    }
-  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
        <DialogHeader className="shrink-0">
         <DialogTitle>Create New Ticket from Email</DialogTitle>
         <DialogDescription>
-          Review the information extracted by AI and fill in any missing details.
+          Review the email information and fill in any missing details below.
         </DialogDescription>
       </DialogHeader>
 
@@ -501,24 +477,9 @@ function CreateTicketFromEmailForm({
                 <div>
                   <CardTitle className="text-sm">Original email</CardTitle>
                   <CardDescription className="text-[11px]">
-                    Used by AI to prefill building, room, and contact.
+                    Use the details below to manually prefill building and contact info.
                   </CardDescription>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExtractInfo}
-                  disabled={isExtracting}
-                  className="gap-1 text-xs"
-                >
-                  {isExtracting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
-                  )}
-                  AI extract
-                </Button>
               </div>
             </CardHeader>
             <CardContent>

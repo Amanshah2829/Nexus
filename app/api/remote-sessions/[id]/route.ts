@@ -3,6 +3,7 @@ import dbConnect from '@/app/lib/db';
 import RemoteSession from '@/app/models/RemoteSession';
 import { cookies } from 'next/headers';
 import { SessionData } from '@/app/lib/session';
+import mongoose from 'mongoose';
 
 export async function GET(
   request: NextRequest,
@@ -29,7 +30,12 @@ export async function GET(
       );
     }
 
-    const remoteSession = await RemoteSession.findById(params.id)
+    // Support both MongoDB ObjectId and UUID id field
+    const query = mongoose.Types.ObjectId.isValid(params.id)
+      ? { _id: params.id }
+      : { id: params.id };
+
+    const remoteSession = await RemoteSession.findOne(query)
       .populate('engineer', 'name email role')
       .populate('complainer', 'name email')
       .populate('complaint', 'title ticketNumber description');
@@ -43,8 +49,8 @@ export async function GET(
 
     // Authorization: user must be engineer or complainer in the session
     if (
-      remoteSession.engineer.toString() !== sessionData.userId &&
-      remoteSession.complainer.toString() !== sessionData.userId
+      remoteSession.engineer._id.toString() !== sessionData.userId &&
+      remoteSession.complainer._id.toString() !== sessionData.userId
     ) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -88,7 +94,12 @@ export async function DELETE(
       );
     }
 
-    const remoteSession = await RemoteSession.findById(params.id);
+    // Support both MongoDB ObjectId and UUID id field
+    const query = mongoose.Types.ObjectId.isValid(params.id)
+      ? { _id: params.id }
+      : { id: params.id };
+
+    const remoteSession = await RemoteSession.findOne(query);
 
     if (!remoteSession) {
       return NextResponse.json(

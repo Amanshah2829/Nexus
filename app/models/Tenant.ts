@@ -26,6 +26,28 @@ export interface ITenant extends Document {
     accentColor?: string;
     backgroundColor?: string;
   };
+  // Identity Provider Configurations
+  authConfiguration?: {
+    method: 'local' | 'saml' | 'oidc' | 'ldap';
+    enabled: boolean;
+    saml?: {
+      entryPoint: string;
+      issuer: string;
+      cert: string;
+    };
+    oidc?: {
+      issuer: string;
+      clientId: string;
+      clientSecret: string;
+    };
+    ldap?: {
+      url: string;
+      baseDn: string;
+      bindDn: string;
+      bindCredentials?: string;
+      searchFilter: string;
+    };
+  };
   // From onboarding
   industry?: string;
   companySize?: string;
@@ -59,6 +81,28 @@ const BrandingSchema: Schema = new Schema({
   backgroundColor: { type: String },
 }, { _id: false });
 
+const AuthConfigSchema: Schema = new Schema({
+  method: { type: String, enum: ['local', 'saml', 'oidc', 'ldap'], default: 'local' },
+  enabled: { type: Boolean, default: false },
+  saml: {
+    entryPoint: { type: String },
+    issuer: { type: String },
+    cert: { type: String },
+  },
+  oidc: {
+    issuer: { type: String },
+    clientId: { type: String },
+    clientSecret: { type: String },
+  },
+  ldap: {
+    url: { type: String },
+    baseDn: { type: String },
+    bindDn: { type: String },
+    bindCredentials: { type: String },
+    searchFilter: { type: String },
+  },
+}, { _id: false });
+
 const TenantSchema: Schema = new Schema({
   name: { type: String, required: true, unique: true },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
@@ -67,6 +111,7 @@ const TenantSchema: Schema = new Schema({
     engineer: [{ type: String }],
   },
   branding: { type: BrandingSchema },
+  authConfiguration: { type: AuthConfigSchema },
   industry: { type: String },
   companySize: { type: String },
   address: { type: AddressSchema },

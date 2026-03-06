@@ -20,14 +20,16 @@ export function ReportsContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: complaints, error } = useSWR<IComplaint[]>('/api/complaints?status=all', fetcher);
 
-  const filteredComplaints = complaints?.filter(c => 
-    c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.reporter.toLowerCase().includes(searchQuery.toLowerCase())
+  const complaintsArray = Array.isArray(complaints) ? complaints : [];
+
+  const filteredComplaints = complaintsArray.filter(c => 
+    c.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.reporter?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (error) return <div className="text-center p-8 text-destructive">Failed to load reports.</div>;
-  if (!complaints) return <div className="flex h-full items-center justify-center"><LoadingAnimation /></div>;
+  if (!complaints && !error) return <div className="flex h-full items-center justify-center"><LoadingAnimation /></div>;
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -67,7 +69,7 @@ export function ReportsContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredComplaints?.map(complaint => (
+              {filteredComplaints.map(complaint => (
                 <TableRow key={complaint._id}>
                   <TableCell className="font-mono">{complaint.id}</TableCell>
                   <TableCell className="font-medium">{complaint.title}</TableCell>
@@ -84,7 +86,7 @@ export function ReportsContent() {
               ))}
             </TableBody>
           </Table>
-           {filteredComplaints && filteredComplaints.length === 0 && (
+           {filteredComplaints.length === 0 && (
                 <div className="text-center p-10 text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-2"/>
                     <p>No reports match your search.</p>

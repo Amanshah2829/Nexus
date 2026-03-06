@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Vynsec Nexus",
   },
+  other: {
+    "mobile-web-app-capable": "yes"
+  },
   icons: {
     apple: "/android-chrome-192x192.png",
     icon: [

@@ -48,15 +48,16 @@ export function LifecycleContent() {
 
   const { data: complaints, error, isLoading } = useSWR<IComplaint[]>('/api/complaints', fetcher)
 
+  const complaintsArray = Array.isArray(complaints) ? complaints : [];
+
   const getStageProgress = (currentStage: string) => {
     const stageIndex = lifecycleStages.findIndex((stage) => stage.id === currentStage)
     return ((stageIndex + 1) / lifecycleStages.length) * 100
   }
 
   const getFilteredComplaints = () => {
-    if (!complaints) return []
-    if (selectedStage === "all") return complaints
-    return complaints.filter((complaint) => complaint.status === selectedStage)
+    if (selectedStage === "all") return complaintsArray
+    return complaintsArray.filter((complaint) => complaint.status === selectedStage)
   }
 
   const getStageColor = (stageId: string) => {
@@ -67,7 +68,6 @@ export function LifecycleContent() {
   const handleUpdateSuccess = () => {
     mutate('/api/complaints')
     if (selectedComplaint) {
-      // Re-fetch the selected complaint to update its details
       fetch(`/api/complaints/${selectedComplaint._id}`)
         .then(res => res.json())
         .then(data => setSelectedComplaint(data))
@@ -76,9 +76,7 @@ export function LifecycleContent() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="p-4 md:p-6 border-b border-border bg-card/30">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h1 className="text-2xl font-semibold">Complaint Lifecycle</h1>
@@ -88,17 +86,16 @@ export function LifecycleContent() {
             </Button>
           </div>
 
-          {/* Stage Filter */}
           <div className="flex items-center gap-2 flex-wrap mt-4">
             <Button
               variant={selectedStage === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedStage("all")}
             >
-              All ({complaints?.length || 0})
+              All ({complaintsArray.length})
             </Button>
             {lifecycleStages.map((stage) => {
-              const count = complaints?.filter((c) => c.status === stage.id).length || 0
+              const count = complaintsArray.filter((c) => c.status === stage.id).length || 0
               return (
                 <Button
                   key={stage.id}
@@ -115,7 +112,6 @@ export function LifecycleContent() {
           </div>
         </div>
 
-        {/* Lifecycle Overview */}
         <div className="hidden md:block p-4 md:p-6 border-b border-border bg-card/20 overflow-x-auto">
           <h2 className="text-lg font-medium mb-4">Workflow Stages</h2>
           <div className="flex items-start justify-between min-w-max">
@@ -136,7 +132,6 @@ export function LifecycleContent() {
           </div>
         </div>
 
-        {/* Complaints List */}
         <div className="flex-1 overflow-auto p-4 md:p-6">
           {isLoading && <div className="flex justify-center items-center h-full"><LoadingAnimation /></div>}
           {error && <div className="text-center text-destructive">Failed to load complaints.</div>}
@@ -194,16 +189,15 @@ export function LifecycleContent() {
                           <AvatarImage src={(complaint.assignedTo as any)?.avatar || `https://avatar.vercel.sh/${(complaint.assignedTo as any)?.name}.png`} />
                           <AvatarFallback className="text-xs">
                             {(complaint.assignedTo as any)?.name
-                              .split(" ")
+                              ?.split(" ")
                               .map((n: string) => n[0])
-                              .join("")}
+                              .join("") || "U"}
                           </AvatarFallback>
                         </Avatar>
                       )}
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                       <span>Progress</span>
@@ -214,11 +208,16 @@ export function LifecycleContent() {
                 </CardContent>
               </Card>
             ))}
+            {!isLoading && complaintsArray.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p>No complaints found matching this criteria.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Complaint Details Sidebar */}
       {selectedComplaint && (
         <div className="w-full md:w-96 border-l border-border bg-card/30">
           <ComplaintLifecycleDetails
@@ -229,7 +228,6 @@ export function LifecycleContent() {
         </div>
       )}
 
-      {/* Update Stage Dialog */}
       <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -269,7 +267,6 @@ function ComplaintLifecycleDetails({
       </div>
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Basic Info */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm">Complaint Information</CardTitle>
@@ -306,20 +303,19 @@ function ComplaintLifecycleDetails({
           </CardContent>
         </Card>
 
-        {/* Timeline */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm">Timeline</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {complaint.history.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry: any, index: number) => {
+              {(complaint.history || []).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry: any, index: number) => {
                 const stageId = lifecycleStages.find(s => entry.action.toLowerCase().includes(s.id))?.id || 'created';
                 const stage = lifecycleStages.find((s) => s.id === stageId)
                 return (
                   <div key={index} className="flex gap-3">
                     <div
-                      className={`w-8 h-8 rounded-full ${stage?.color} flex items-center justify-center flex-shrink-0`}
+                      className={`w-8 h-8 rounded-full ${stage?.color || 'bg-muted'} flex items-center justify-center flex-shrink-0`}
                     >
                       <CheckCircle className="h-4 w-4 text-white" />
                     </div>
@@ -332,19 +328,6 @@ function ComplaintLifecycleDetails({
                       </div>
                       {entry.details?.message && <p className="text-xs text-muted-foreground mb-2 p-2 bg-accent/50 rounded-md whitespace-pre-wrap">{entry.details.message}</p>}
                       <div className="text-xs text-muted-foreground">by {entry.user}</div>
-                      {entry.attachments?.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {entry.attachments.map((attachment: string, i: number) => (
-                            <div key={i} className="flex items-center gap-2 text-xs">
-                              <FileText className="h-3 w-3" />
-                              <span>{attachment}</span>
-                              <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
-                                <Download className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )
@@ -353,7 +336,6 @@ function ComplaintLifecycleDetails({
           </CardContent>
         </Card>
 
-        {/* Reporter Info */}
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-sm">Reporter Information</CardTitle>
@@ -370,17 +352,9 @@ function ComplaintLifecycleDetails({
                 <span className="text-sm">{complaint.reporterEmail}</span>
               </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Phone</label>
-              <div className="flex items-center gap-2">
-                <Phone className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm">{complaint.phone}</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Assigned Engineer */}
         {complaint.assignedTo && (
         <Card className="glass-card">
           <CardHeader>
@@ -392,9 +366,9 @@ function ComplaintLifecycleDetails({
                 <AvatarImage src={(complaint.assignedTo as any)?.avatar || `https://avatar.vercel.sh/${(complaint.assignedTo as any)?.name}.png`} />
                 <AvatarFallback>
                   {(complaint.assignedTo as any)?.name
-                    .split(" ")
+                    ?.split(" ")
                     .map((n: string) => n[0])
-                    .join("")}
+                    .join("") || "U"}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -426,7 +400,6 @@ function ComplaintLifecycleDetails({
 function UpdateStageForm({ complaint, onClose, onSuccess }: { complaint: IComplaint; onClose: () => void; onSuccess: () => void; }) {
   const [selectedStage, setSelectedStage] = useState("")
   const [notes, setNotes] = useState("")
-  const [attachments, setAttachments] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast()
 
@@ -436,11 +409,7 @@ function UpdateStageForm({ complaint, onClose, onSuccess }: { complaint: ICompla
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStage) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Please select a stage to move to.",
-        });
+        toast({ variant: "destructive", title: "Error", description: "Please select a stage to move to." });
         return;
     }
     setIsSubmitting(true);
@@ -453,7 +422,7 @@ function UpdateStageForm({ complaint, onClose, onSuccess }: { complaint: ICompla
                 history: [
                     {
                         action: `Status changed to ${selectedStage}`,
-                        user: 'Admin', // Replace with actual user
+                        user: 'Admin',
                         timestamp: new Date(),
                         details: { message: notes }
                     }
@@ -461,27 +430,17 @@ function UpdateStageForm({ complaint, onClose, onSuccess }: { complaint: ICompla
             }),
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to update complaint stage');
-        }
+        if (!response.ok) throw new Error('Failed to update complaint stage');
 
-        toast({
-            title: "Success",
-            description: `Complaint stage updated to "${selectedStage}".`,
-        });
+        toast({ title: "Success", description: `Complaint stage updated to "${selectedStage}".` });
         onSuccess();
         onClose();
-
     } catch (err: any) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: err.message,
-        });
+        toast({ variant: "destructive", title: "Error", description: err.message });
     } finally {
         setIsSubmitting(false);
     }
-};
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -489,7 +448,7 @@ function UpdateStageForm({ complaint, onClose, onSuccess }: { complaint: ICompla
         <label className="text-sm font-medium mb-2 block">Current Stage</label>
         <div className="p-3 bg-muted rounded-md">
           <Badge
-            className={`${lifecycleStages.find((s) => s.id === complaint.status)?.color} text-white`}
+            className={`${lifecycleStages.find((s) => s.id === complaint.status)?.color || 'bg-muted'} text-white`}
           >
             {lifecycleStages.find((s) => s.id === complaint.status)?.name}
           </Badge>
@@ -524,37 +483,6 @@ function UpdateStageForm({ complaint, onClose, onSuccess }: { complaint: ICompla
           rows={4}
           required
         />
-      </div>
-
-      <div>
-        <label className="text-sm font-medium mb-2 block">Attachments</label>
-        <div className="border-2 border-dashed border-border rounded-md p-4 text-center">
-          <input
-            type="file"
-            multiple
-            className="hidden"
-            id="attachments"
-            onChange={(e) => {
-              if (e.target.files) {
-                setAttachments(Array.from(e.target.files))
-              }
-            }}
-          />
-          <label htmlFor="attachments" className="cursor-pointer">
-            <Camera className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Click to upload files</p>
-          </label>
-        </div>
-        {attachments.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {attachments.map((file, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm">
-                <FileText className="h-4 w-4" />
-                <span>{file.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

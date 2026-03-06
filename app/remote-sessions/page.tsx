@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, Clock, CheckCircle, XCircle, AlertCircle, Eye, Video } from 'lucide-react';
+import { Loader2, Play, Clock, CheckCircle, XCircle, AlertCircle, Eye, Video, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 
@@ -91,6 +92,10 @@ export default function RemoteSessionsPage() {
         return 'bg-gray-100 text-gray-800';
     }
   }
+
+  const handleEnterWorkspace = (id: string) => {
+    router.push(`/remote-sessions/${id}`);
+  };
 
   const activeSessions = sessions.filter((s) => ['pending', 'approved', 'active'].includes(s.status));
   const historySessions = sessions.filter((s) => ['completed', 'cancelled', 'rejected'].includes(s.status));
@@ -197,9 +202,9 @@ export default function RemoteSessionsPage() {
                       <div className="flex gap-2 pt-2">
                         {session.status === 'active' && (
                           <>
-                            <Button size="sm" className="gap-2">
-                              <Video className="w-4 h-4" />
-                              View Session
+                            <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleEnterWorkspace(session._id)}>
+                              <ExternalLink className="w-4 h-4" />
+                              Enter Workspace
                             </Button>
                             <Button size="sm" variant="outline">
                               End Session
@@ -212,7 +217,7 @@ export default function RemoteSessionsPage() {
                           </p>
                         )}
                         {session.status === 'approved' && (
-                          <Button size="sm" className="gap-2">
+                          <Button size="sm" className="gap-2" onClick={() => handleEnterWorkspace(session._id)}>
                             <Play className="w-4 h-4" />
                             Start Session
                           </Button>
