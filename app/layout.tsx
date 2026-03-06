@@ -7,13 +7,13 @@ import "./globals.css";
 
 // Proper Metadata API usage
 export const metadata: Metadata = {
-  title: "Vynsec Nexus",
-  description: "Complaint Management System",
+  title: "Nexus - Enterprise SaaS Dashboard",
+  description: "Modern premium SaaS dashboard for support operations and team management. Featuring real-time analytics, ticket tracking, and team collaboration tools.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Vynsec Nexus",
+    title: "Nexus Dashboard",
   },
   other: {
     "mobile-web-app-capable": "yes"
@@ -28,7 +28,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#0F1117",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 

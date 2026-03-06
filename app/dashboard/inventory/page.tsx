@@ -1,215 +1,257 @@
 'use client';
 
-import { useState } from 'react';
-import DashboardLayout from '@/components/dashboard-layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Download, Trash2, Edit2 } from 'lucide-react';
-
-const mockAssets = [
-  {
-    id: '1',
-    name: 'Dell Laptop',
-    serialNumber: 'DELL-2024-001',
-    category: 'Equipment',
-    status: 'active',
-    location: 'Building A',
-    assignedTo: 'John Doe',
-    purchaseDate: '2023-01-15',
-    value: '$1,200',
-  },
-  {
-    id: '2',
-    name: 'HP Desktop',
-    serialNumber: 'HP-2024-002',
-    category: 'Equipment',
-    status: 'inactive',
-    location: 'Storage',
-    assignedTo: 'Unassigned',
-    purchaseDate: '2022-06-20',
-    value: '$900',
-  },
-  {
-    id: '3',
-    name: 'Network Switch',
-    serialNumber: 'CISCO-2024-001',
-    category: 'Network',
-    status: 'active',
-    location: 'Server Room',
-    assignedTo: 'Tech Team',
-    purchaseDate: '2023-03-10',
-    value: '$2,500',
-  },
-];
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Plus, Search, AlertTriangle, Package, TrendingDown, DollarSign } from 'lucide-react';
+import { ModernDashboardLayout } from '@/app/components/dashboards/modern-dashboard-layout';
+import { StatCard } from '@/app/components/dashboards/dashboard-widgets';
 
 export default function InventoryPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [view, setView] = useState<'grid' | 'list'>('list');
+  const [sortBy, setSortBy] = useState('name');
 
-  const filteredAssets = mockAssets.filter((asset) => {
-    const matchesSearch = asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         asset.serialNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || asset.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const inventoryStats = [
+    { title: 'Total Items', value: '1,247', change: 12, gradient: 'from-blue-500 to-cyan-500', icon: '📦' },
+    { title: 'Low Stock', value: '23', change: 5, gradient: 'from-orange-500 to-red-500', icon: '⚠️' },
+    { title: 'Inventory Value', value: '$487.2K', change: 8, gradient: 'from-green-500 to-emerald-500', icon: '💰' },
+    { title: 'Reorder Rate', value: '3.2%', change: -2, gradient: 'from-purple-500 to-pink-500', icon: '📊' },
+  ];
 
-  const getStatusColor = (status: string) => {
-    return status === 'active' ? 'success' : 'secondary';
+  const items = [
+    {
+      id: '1',
+      name: 'Laptop Computer',
+      sku: 'LAP-001',
+      category: 'Hardware',
+      quantity: 45,
+      minStock: 10,
+      unitPrice: 1200,
+      status: 'healthy',
+    },
+    {
+      id: '2',
+      name: 'Monitor 27"',
+      sku: 'MON-001',
+      category: 'Hardware',
+      quantity: 8,
+      minStock: 15,
+      unitPrice: 350,
+      status: 'low',
+    },
+    {
+      id: '3',
+      name: 'Keyboard',
+      sku: 'KEY-001',
+      category: 'Peripherals',
+      quantity: 156,
+      minStock: 20,
+      unitPrice: 89,
+      status: 'healthy',
+    },
+    {
+      id: '4',
+      name: 'Mouse',
+      sku: 'MSE-001',
+      category: 'Peripherals',
+      quantity: 3,
+      minStock: 25,
+      unitPrice: 45,
+      status: 'critical',
+    },
+    {
+      id: '5',
+      name: 'USB-C Cable',
+      sku: 'CAB-001',
+      category: 'Cables',
+      quantity: 542,
+      minStock: 100,
+      unitPrice: 12,
+      status: 'healthy',
+    },
+    {
+      id: '6',
+      name: 'HDMI Cable',
+      sku: 'CAB-002',
+      category: 'Cables',
+      quantity: 12,
+      minStock: 50,
+      unitPrice: 8,
+      status: 'low',
+    },
+  ];
+
+  const statusColors = {
+    healthy: 'bg-green-500/20 text-green-400',
+    low: 'bg-yellow-500/20 text-yellow-400',
+    critical: 'bg-red-500/20 text-red-400',
   };
 
+  const sortedItems = [...items].sort((a, b) => {
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    if (sortBy === 'stock') return a.quantity - b.quantity;
+    if (sortBy === 'value') return (a.quantity * a.unitPrice) - (b.quantity * b.unitPrice);
+    return 0;
+  });
+
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <ModernDashboardLayout currentPage="inventory">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-8"
+      >
+        <div>
+          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">Inventory</h1>
+          <p className="text-gray-400">Track and manage company assets and equipment.</p>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl font-semibold transition-all"
+        >
+          <Plus size={18} />
+          New Item
+        </motion.button>
+      </motion.div>
+
+      {/* Stats */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      >
+        {inventoryStats.map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.05 }}
+          >
+            <StatCard
+              title={stat.title}
+              value={stat.value}
+              change={Math.abs(stat.change)}
+              trend={stat.change > 0 ? 'up' : 'down'}
+              icon={<span className="text-2xl">{stat.icon}</span>}
+              gradient={stat.gradient}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* Controls */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="flex items-center justify-between mb-6"
+      >
+        <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
+          <Search size={18} className="text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search items..."
+            className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-48"
+          />
+        </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 transition-all"
+        >
+          <option value="name">Sort by Name</option>
+          <option value="stock">Sort by Stock Level</option>
+          <option value="value">Sort by Total Value</option>
+        </select>
+      </motion.div>
+
+      {/* Inventory Table */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="bg-gradient-to-br from-[#1C1F2B] to-[#161A23] border border-white/5 rounded-2xl backdrop-blur-xl overflow-hidden"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/5 bg-white/2">
+                <th className="px-6 py-4 text-left font-semibold text-gray-400">Item Name</th>
+                <th className="px-6 py-4 text-left font-semibold text-gray-400">Category</th>
+                <th className="px-6 py-4 text-left font-semibold text-gray-400">Current Stock</th>
+                <th className="px-6 py-4 text-left font-semibold text-gray-400">Unit Price</th>
+                <th className="px-6 py-4 text-left font-semibold text-gray-400">Total Value</th>
+                <th className="px-6 py-4 text-left font-semibold text-gray-400">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedItems.map((item) => {
+                const totalValue = item.quantity * item.unitPrice;
+                return (
+                  <motion.tr
+                    key={item.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}
+                    className="border-b border-white/5 transition-all"
+                  >
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="text-white font-medium">{item.name}</p>
+                        <p className="text-gray-500 text-xs">{item.sku}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-400">{item.category}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-semibold">{item.quantity}</span>
+                        {item.quantity <= item.minStock && (
+                          <AlertTriangle size={16} className="text-orange-400" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-400">${item.unitPrice}</td>
+                    <td className="px-6 py-4 text-white font-semibold">${totalValue.toLocaleString()}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${statusColors[item.status as keyof typeof statusColors]}`}>
+                        {item.status === 'healthy' && '✓ Healthy'}
+                        {item.status === 'low' && '! Low Stock'}
+                        {item.status === 'critical' && '⚠ Critical'}
+                      </span>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
+
+      {/* Low Stock Alert */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mt-8 bg-orange-500/10 border border-orange-500/30 rounded-2xl p-6"
+      >
+        <div className="flex items-start gap-4">
+          <AlertTriangle size={24} className="text-orange-400 flex-shrink-0 mt-1" />
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-            <p className="text-muted-foreground mt-2">Manage your assets and equipment</p>
+            <h3 className="text-white font-bold mb-2">Low Stock Alert</h3>
+            <p className="text-orange-400 text-sm mb-3">The following items are below minimum stock levels:</p>
+            <div className="space-y-2">
+              {items.filter(i => i.quantity <= i.minStock).map(item => (
+                <div key={item.id} className="flex items-center justify-between text-sm">
+                  <span className="text-gray-300">{item.name}</span>
+                  <span className="text-orange-400 font-semibold">{item.quantity} / {item.minStock}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Asset
-          </Button>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">247</div>
-              <p className="text-xs text-muted-foreground mt-1">Across all categories</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Active</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-success">198</div>
-              <p className="text-xs text-muted-foreground mt-1">80% utilization</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-warning">35</div>
-              <p className="text-xs text-muted-foreground mt-1">In storage</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">$187K</div>
-              <p className="text-xs text-muted-foreground mt-1">Estimated worth</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">Search & Filter</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4 flex-col sm:flex-row">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or serial number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Assets Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Assets</CardTitle>
-            <CardDescription>{filteredAssets.length} assets found</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-medium">Name</th>
-                    <th className="text-left py-3 px-4 font-medium">Serial Number</th>
-                    <th className="text-left py-3 px-4 font-medium">Category</th>
-                    <th className="text-left py-3 px-4 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 font-medium">Location</th>
-                    <th className="text-left py-3 px-4 font-medium">Assigned To</th>
-                    <th className="text-left py-3 px-4 font-medium">Value</th>
-                    <th className="text-right py-3 px-4 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAssets.map((asset) => (
-                    <tr key={asset.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="py-3 px-4 font-medium">{asset.name}</td>
-                      <td className="py-3 px-4 text-muted-foreground text-xs">{asset.serialNumber}</td>
-                      <td className="py-3 px-4">{asset.category}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={getStatusColor(asset.status)}>
-                          {asset.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">{asset.location}</td>
-                      <td className="py-3 px-4">{asset.assignedTo}</td>
-                      <td className="py-3 px-4 font-medium">{asset.value}</td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredAssets.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No assets found matching your search.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+      </motion.div>
+    </ModernDashboardLayout>
   );
 }
